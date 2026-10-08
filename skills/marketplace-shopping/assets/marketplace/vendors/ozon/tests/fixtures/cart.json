@@ -1,0 +1,111 @@
+[
+  {
+    "cartItems": [
+      {
+        "product": {
+          "id": "2031616091",
+          "titleColumn": [
+            {
+              "type": "text",
+              "text": {
+                "text": "Фитолампа для растений полного спектра 240Вт Quantum Board",
+                "textColor": "textPrimary",
+                "maxLines": 3,
+                "preset": "PRESET_CUSTOM",
+                "typographyToken": "tsCompact500Medium",
+                "testInfo": {
+                  "automatizationId": "cart-item-title-text"
+                }
+              }
+            },
+            {
+              "type": "verticalSpacer",
+              "verticalSpacer": {
+                "spacing": 4
+              }
+            },
+            {
+              "type": "badges",
+              "badges": {
+                "elements": [
+                  {
+                    "text": "Постоплата",
+                    "leftIcon": "ic_m_partial_payment_filled",
+                    "size": "SIZE_400",
+                    "styleType": "ACTION_SECONDARY"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "verticalSpacer",
+              "verticalSpacer": {
+                "spacing": 12
+              }
+            }
+          ],
+          "priceColumn": [
+            {
+              "type": "prices",
+              "prices": {
+                "elements": [
+                  {
+                    "price": [
+                      {
+                        "text": "22 998 ₽",
+                        "textStyle": "PRICE"
+                      },
+                      {
+                        "icon": "ic_m_card_filled"
+                      }
+                    ],
+                    "priceStyle": {
+                      "styleType": "CARD_PRICE"
+                    },
+                    "preset": "SIZE_400",
+                    "testInfo": {
+                      "automatizationId": "cart-split-item-ozon-card-price"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "prices",
+              "prices": {
+                "elements": [
+                  {
+                    "price": [
+                      {
+                        "text": "25 552 ₽",
+                        "textStyle": "PRICE"
+                      }
+                    ],
+                    "priceStyle": {
+                      "styleType": "SECOND_LVL"
+                    },
+                    "preset": "SIZE_200",
+                    "testInfo": {
+                      "automatizationId": "cart-split-item-price"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "controls": {
+          "quantity": {
+            "minimum": 1,
+            "maximum": 44,
+            "current": 2,
+            "multiplicity": 1
+          }
+        },
+        "checkbox": {
+          "isChecked": true
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,490 @@
+{
+  "states": {
+    "tileGridDesktop": [
+      {
+        "items": [
+          {
+            "mainState": [
+              {
+                "type": "priceV2",
+                "priceV2": {
+                  "price": [
+                    {
+                      "text": "11 499 ₽",
+                      "textStyle": "PRICE"
+                    }
+                  ],
+                  "priceStyle": {
+                    "styleType": "CARD_PRICE"
+                  },
+                  "preset": "SIZE_500"
+                }
+              },
+              {
+                "type": "textDS",
+                "textDS": {
+                  "text": "Фитолампа для растений полного спектра 240Вт Quantum Board",
+                  "textColor": "textPrimary",
+                  "maxLines": 3,
+                  "preset": "PRESET_CUSTOM",
+                  "typographyToken": "tsBody500Medium",
+                  "testInfo": {
+                    "automatizationId": "tile-name"
+                  }
+                },
+                "id": "name"
+              },
+              {
+                "type": "labelListV2",
+                "labelListV2": {
+                  "items": [
+                    {
+                      "type": "icon",
+                      "icon": {
+                        "icon": {
+                          "icon": "ic_s_star_filled_compact",
+                          "tintColor": "graphicRating"
+                        },
+                        "leftPadding": -2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": {
+                        "text": "4.9",
+                        "textColor": "textPremium",
+                        "leftPadding": 2
+                      }
+                    },
+                    {
+                      "type": "icon",
+                      "icon": {
+                        "icon": {
+                          "icon": "ic_s_dialog_filled_compact",
+                          "tintColor": "graphicTertiary"
+                        },
+                        "leftPadding": 4
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": {
+                        "text": "581 отзыв",
+                        "textColor": "textSecondary",
+                        "leftPadding": 2
+                      }
+                    }
+                  ],
+                  "verticalIndents": {
+                    "top": 2,
+                    "bottom": 2
+                  },
+                  "testInfo": {
+                    "automatizationId": "tile-list-rating"
+                  }
+                }
+              }
+            ],
+            "action": {
+              "behavior": "BEHAVIOR_TYPE_REDIRECT",
+              "link": "/product/fitolampa-dlya-rasteniy-polnogo-spektra-240vt-quantum-board-2031616091/"
+            },
+            "id": "2031616091",
+            "isAdult": false,
+            "tileImage": {
+              "imageRatio": "IMAGE_RATIO_3_4",
+              "items": [
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-b/14166489719.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-9/14790835269.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-h/15282097001.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-m/14790835246.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-g/14790835204.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-o/14790835248.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                }
+              ],
+              "leftBottomBadgeV2": {
+                "text": "Цена что надо",
+                "leftIcon": "ic_s_like_filled_compact",
+                "size": "SIZE_500",
+                "styleType": "CUSTOM",
+                "common": {
+                  "testInfo": {
+                    "automatizationId": "badge-priceIndex"
+                  }
+                },
+                "customBadgeStyle": {
+                  "backgroundColor": {
+                    "color": "bgPositivePrimary"
+                  },
+                  "leftGraphicColor": "graphicLightKey",
+                  "textColor": "textLightKey"
+                }
+              }
+            },
+            "brandLogo": null,
+            "topRightButtons": [
+              {
+                "type": "favoriteProductMoleculeV2",
+                "favoriteProductMoleculeV2": {
+                  "id": "2031616091",
+                  "isFav": false,
+                  "favLink": "favoriteBatchAddItems",
+                  "unfavLink": "favoriteBatchDeleteItems",
+                  "favListsLink": "ozon://modal/favoritesListsSelect?sku=2031616091",
+                  "testInfo": {
+                    "favoriteButton": {
+                      "automatizationId": "favorite-button"
+                    },
+                    "unFavoriteButton": {
+                      "automatizationId": "unfavorite-button"
+                    }
+                  }
+                }
+              }
+            ],
+            "multiButton": {
+              "ozonButton": {
+                "type": "addToCart",
+                "addToCart": {
+                  "skuId": "2031616091",
+                  "actionButton": {
+                    "common": {
+                      "action": {
+                        "behavior": "BEHAVIOR_TYPE_CUSTOM",
+                        "id": "addToCart"
+                      },
+                      "testInfo": {
+                        "automatizationId": "ozonAddToCart"
+                      }
+                    },
+                    "icon": "ic_s_grocery_cart_filled",
+                    "title": "11 октября"
+                  },
+                  "quantityButton": {
+                    "maxItems": 44,
+                    "updateCartAction": {
+                      "id": "2031616091",
+                      "quantity": 1
+                    },
+                    "isManualInputAllowed": true
+                  },
+                  "theme": {
+                    "styleWrapper": {
+                      "style": "DEFAULT_PRIMARY"
+                    }
+                  },
+                  "inCartQuantity": 0
+                }
+              }
+            },
+            "sku": 2031616091
+          },
+          {
+            "id": "1256445749",
+            "tileImage": {
+              "imageRatio": "IMAGE_RATIO_3_4",
+              "items": [
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-b/9873086699.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-5/9236919785.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-k/7838272748.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-l/6636705897.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-q/6636705902.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                },
+                {
+                  "type": "image",
+                  "image": {
+                    "link": "https://ir.ozone.ru/s3/multimedia-1-7/7838272735.jpg",
+                    "contentMode": "SCALE_ASPECT_FIT"
+                  }
+                }
+              ],
+              "leftBottomBadgeV2": {
+                "text": "Можно оптом",
+                "size": "SIZE_500",
+                "styleType": "CUSTOM",
+                "common": {
+                  "testInfo": {
+                    "automatizationId": "badge-marketingSuperLow"
+                  }
+                },
+                "customBadgeStyle": {
+                  "backgroundColor": {
+                    "color": "#0050e0ff"
+                  },
+                  "leftGraphicColor": "#FFFFFFFF",
+                  "textColor": "#FFFFFFFF"
+                }
+              },
+              "secondLeftBottomBadgeV2": {
+                "text": "Вау-цены",
+                "leftIcon": "ic_m_features_filled",
+                "size": "SIZE_500",
+                "styleType": "CUSTOM",
+                "common": {
+                  "testInfo": {
+                    "automatizationId": "badge-marketingSuperHigh"
+                  }
+                },
+                "customBadgeStyle": {
+                  "backgroundColor": {
+                    "color": "#070707"
+                  },
+                  "leftGraphicColor": "graphicExpress",
+                  "textColor": "#FFFFFF"
+                }
+              }
+            },
+            "topRightButtons": [
+              {
+                "type": "favoriteProductMoleculeV2",
+                "favoriteProductMoleculeV2": {
+                  "id": "1256445749",
+                  "isFav": false,
+                  "favLink": "favoriteBatchAddItems",
+                  "unfavLink": "favoriteBatchDeleteItems",
+                  "favListsLink": "ozon://modal/favoritesListsSelect?sku=1256445749",
+                  "testInfo": {
+                    "favoriteButton": {
+                      "automatizationId": "favorite-button"
+                    },
+                    "unFavoriteButton": {
+                      "automatizationId": "unfavorite-button"
+                    }
+                  }
+                }
+              }
+            ],
+            "mainState": [
+              {
+                "type": "priceV2",
+                "priceV2": {
+                  "price": [
+                    {
+                      "text": "6 930 ₽",
+                      "textStyle": "PRICE"
+                    },
+                    {
+                      "text": "988 999 ₽",
+                      "textStyle": "ORIGINAL_PRICE"
+                    }
+                  ],
+                  "discount": "−99%",
+                  "priceStyle": {
+                    "styleType": "SALE_PRICE",
+                    "gradient": {
+                      "startColor": "#F1117E",
+                      "endColor": "#F1117E"
+                    }
+                  },
+                  "preset": "SIZE_500"
+                }
+              },
+              {
+                "type": "labelListV2",
+                "labelListV2": {
+                  "items": [
+                    {
+                      "type": "icon",
+                      "icon": {
+                        "icon": {
+                          "icon": "ic_s_multicolor_fintech_stars_compact"
+                        },
+                        "leftPadding": -2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": {
+                        "text": "81 и 1 ₽",
+                        "textColor": "textSecondary",
+                        "typographyToken": "tsBodyControl400Small",
+                        "leftPadding": 2
+                      }
+                    }
+                  ],
+                  "verticalIndents": {
+                    "top": 2,
+                    "bottom": 2
+                  },
+                  "testInfo": {
+                    "automatizationId": "tile-list-star-price-label"
+                  }
+                }
+              },
+              {
+                "type": "textDS",
+                "textDS": {
+                  "text": "Quantum Board 200 Ватт lm281B+ / фитолампа для растений / фитосветильник в гроубокс Квантум борд",
+                  "textColor": "textPrimary",
+                  "maxLines": 3,
+                  "preset": "PRESET_CUSTOM",
+                  "typographyToken": "tsBody500Medium",
+                  "testInfo": {
+                    "automatizationId": "tile-name"
+                  }
+                },
+                "id": "name"
+              },
+              {
+                "type": "labelListV2",
+                "labelListV2": {
+                  "items": [
+                    {
+                      "type": "icon",
+                      "icon": {
+                        "icon": {
+                          "icon": "ic_s_star_filled_compact",
+                          "tintColor": "graphicRating"
+                        },
+                        "leftPadding": -2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": {
+                        "text": "4.9",
+                        "textColor": "textPremium",
+                        "leftPadding": 2
+                      }
+                    },
+                    {
+                      "type": "icon",
+                      "icon": {
+                        "icon": {
+                          "icon": "ic_s_dialog_filled_compact",
+                          "tintColor": "graphicTertiary"
+                        },
+                        "leftPadding": 4
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "text": {
+                        "text": "719 отзывов",
+                        "textColor": "textSecondary",
+                        "leftPadding": 2
+                      }
+                    }
+                  ],
+                  "verticalIndents": {
+                    "top": 2,
+                    "bottom": 2
+                  },
+                  "testInfo": {
+                    "automatizationId": "tile-list-rating"
+                  }
+                }
+              }
+            ],
+            "multiButton": {
+              "ozonButton": {
+                "type": "addToCart",
+                "addToCart": {
+                  "skuId": "1256445749",
+                  "actionButton": {
+                    "common": {
+                      "action": {
+                        "behavior": "BEHAVIOR_TYPE_CUSTOM",
+                        "id": "addToCart"
+                      },
+                      "testInfo": {
+                        "automatizationId": "ozonAddToCart"
+                      }
+                    },
+                    "icon": "ic_s_grocery_cart_filled",
+                    "title": "11 октября"
+                  },
+                  "quantityButton": {
+                    "maxItems": 8,
+                    "updateCartAction": {
+                      "id": "1256445749",
+                      "quantity": 1
+                    },
+                    "isManualInputAllowed": true
+                  },
+                  "theme": {
+                    "styleWrapper": {
+                      "style": "DEFAULT_PRIMARY"
+                    }
+                  },
+                  "inCartQuantity": 0
+                }
+              }
+            },
+            "brandLogo": null,
+            "sku": 1256445749,
+            "action": {
+              "behavior": "BEHAVIOR_TYPE_REDIRECT",
+              "link": "/product/quantum-board-200-vatt-lm281b-fitolampa-dlya-rasteniy-fitosvetilnik-v-grouboks-kvantum-bord-1256445749/"
+            },
+            "isAdult": false
+          }
+        ]
+      }
+    ]
+  }
+}

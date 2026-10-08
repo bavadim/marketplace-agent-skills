@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marketplace shopping"
+  short_description: "Compare tools and parts across Ozon and AliExpress"
+  default_prompt: "Use $marketplace-shopping to find the right part and compare its total price and delivery across both marketplaces."

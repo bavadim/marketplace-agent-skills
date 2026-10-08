@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marketplace orders"
+  short_description: "One order list, delivery dates and pickup deadlines"
+  default_prompt: "Use $marketplace-orders to refresh my orders from both marketplaces and show the combined delivery and pickup list."

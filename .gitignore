@@ -1,0 +1,130 @@
+# Only these roots belong to the public repository.
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/requirements.txt
+!/scripts/
+!/skills/
+!/.github/
+
+# Local sessions are allowed, including inside a skill, but never published.
+.secrets/
+.runtime/
+.state/
+.env
+.env.*
+sessions/
+browser-profile/
+browser-profiles/
+chromium-profile/
+chromium-profiles/
+profiles/
+session.json
+session-*.json
+session_*.json
+*-session.json
+*-session-*.json
+*storage-state*.json
+*storage_state*.json
+*cookies*.json
+*cookies*.txt
+*cookies*.sqlite*
+*.cookie
+Cookies
+Cookies-*
+Local State
+Login Data
+Login Data-*
+Web Data
+Web Data-*
+Preferences
+Secure Preferences
+History
+History-*
+Network Persistent State
+Xauthority
+SingletonCookie
+SingletonLock
+SingletonSocket
+
+# Credentials and local agent/cloud configuration.
+.codex/
+.agents/
+.aws/
+.ssh/
+.gnupg/
+credentials
+credentials*.json
+auth-state*.json
+auth_state*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.der
+*.jks
+*.keytab
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+authorized_keys
+
+# Dependencies, caches and generated build/test output.
+.venv/
+.venv-*/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+*.egg-info/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+dist/
+build/
+
+# Case-specific work, downloads, photos and exported account artifacts.
+runs/
+diagnostics/
+research/
+network-migration/
+archive/
+artifacts/
+downloads/
+receipts/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.webm
+*.wav
+*.mp3
+*.pdf
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.old
+*.orig
+*.tmp
+*.log
+
+# Editor/OS scratch files.
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

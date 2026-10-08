@@ -1,0 +1,4 @@
+interface:
+  display_name: "Marketplace accounts"
+  short_description: "Connect marketplace accounts through a private login page"
+  default_prompt: "Use $marketplace-accounts to connect my marketplace accounts and verify their saved logins before continuing shopping or order tracking."

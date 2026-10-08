@@ -1,0 +1,762 @@
+{
+  "states": {
+    "webProductMainWidget": [
+      {
+        "sku": "2031616091",
+        "url": "/product/fitolampa-dlya-rasteniy-polnogo-spektra-240vt-quantum-board-2031616091/"
+      }
+    ],
+    "webPrice": [
+      {
+        "isAvailable": true,
+        "cardPrice": "11 499 ₽",
+        "price": "12 776 ₽",
+        "showOriginalPrice": true,
+        "link": "/modal/pdpListOfBanks?product_id=2031616091",
+        "lexemes": {
+          "currency": "Валюта",
+          "includeVatTextMobile": "Цена с НДС",
+          "moreText": "Подробнее",
+          "notRefundVatText": "НДС не возмещается",
+          "withOzonCard": "С банками",
+          "withoutOzonCard": "С другими банками",
+          "withoutVatText": "без НДС",
+          "withoutVatTextCapitalize": "Без НДС",
+          "withoutVatTextMobile": "Цена без НДС"
+        },
+        "colorBlockRightContent": {
+          "images": [
+            {
+              "image": "https://ir.ozone.ru/s3/payments-cdn/ozon-price-compact-new-ozon-light.png",
+              "aspectRatio": "RATIO_1_1",
+              "imageWidth": 23,
+              "cdnSettings": {
+                "size": 64
+              },
+              "fitType": "FIT_CENTER"
+            },
+            {
+              "image": "https://ir.ozone.ru/s3/payments-cdn/ozon_other_sovkombank_dark.png",
+              "aspectRatio": "RATIO_1_1",
+              "imageWidth": 20,
+              "cdnSettings": {
+                "size": 64
+              },
+              "fitType": "FIT_CENTER"
+            },
+            {
+              "image": "https://ir.ozone.ru/s3/payments-cdn/ozon_other_otp_light.png",
+              "aspectRatio": "RATIO_1_1",
+              "imageWidth": 20,
+              "cdnSettings": {
+                "size": 64
+              },
+              "fitType": "FIT_CENTER"
+            },
+            {
+              "image": "https://ir.ozone.ru/s3/payments-cdn/ozon_other_crediteurope_black.png",
+              "aspectRatio": "RATIO_1_1",
+              "imageWidth": 20,
+              "cdnSettings": {
+                "size": 64
+              },
+              "fitType": "FIT_CENTER"
+            }
+          ]
+        }
+      }
+    ],
+    "webProductHeading": [
+      {
+        "title": "Фитолампа для растений полного спектра 240Вт Quantum Board",
+        "rowCount": 3,
+        "lexemes": {
+          "showMore": "ещё"
+        }
+      }
+    ],
+    "webReviewProductScore": [
+      {
+        "url": "product/fitolampa-dlya-rasteniy-polnogo-spektra-240vt-quantum-board-2031616091/reviews",
+        "reviewsCount": 581,
+        "itemId": "2031616091",
+        "totalScore": 4.9,
+        "constants": {
+          "emptyScoreText": "Нет оценок",
+          "reviewsTextEmpty": "Оставить отзыв",
+          "reviewsTextExist": "581 отзыв"
+        },
+        "lmtParams": {
+          "displayType": "simple",
+          "anchorUrl": "?tab=reviews#comments--offset-130"
+        }
+      }
+    ],
+    "webAspects": [
+      {
+        "aspects": [
+          {
+            "aspectName": "Макс. мощность ламп, Вт",
+            "aspectKey": "LampMaxPower",
+            "type": "textBar",
+            "descriptionRs": [
+              {
+                "type": "textGray",
+                "content": "Макс. мощность ламп, Вт:"
+              }
+            ],
+            "additionalInfo": {
+              "hintRs": [
+                {
+                  "type": "text",
+                  "content": "Максимальная мощность – это предельно допустимая мощность осветительного прибора, для которого предназначена лампа. Использовать лампы большей мощности не рекомендуется, поскольку это приведет к быстрому износу и выходу из строя патрона. Максимальная мощность указывается в технических характеристиках прибора."
+                }
+              ]
+            },
+            "variants": [
+              {
+                "sku": "892422448",
+                "link": "/product/fitolampa-dlya-rasteniy-120vt-diody-lm-301-polnyy-spektr-892422448/",
+                "availability": "inStock",
+                "data": {
+                  "searchableText": "120",
+                  "textRs": [
+                    {
+                      "type": "text",
+                      "content": "120"
+                    }
+                  ],
+                  "price": "10 363 ₽",
+                  "coverImage": "https://ir.ozone.ru/s3/multimedia-1-w/wc140/15282100580.jpg",
+                  "originalPrice": "44 790 ₽",
+                  "title": "Фитолампа для растений 120Вт диоды LM-301 полный спектр"
+                },
+                "price": 10363
+              },
+              {
+                "sku": "1412606938",
+                "link": "/product/fitolampa-dlya-rasteniy-quantum-board-200-vt-polnogo-spektra-diody-lm301b-1412606938/",
+                "availability": "inStock",
+                "data": {
+                  "searchableText": "200",
+                  "textRs": [
+                    {
+                      "type": "text",
+                      "content": "200"
+                    }
+                  ],
+                  "price": "6 469 ₽",
+                  "coverImage": "https://ir.ozone.ru/s3/multimedia-1-u/wc140/7397261706.jpg",
+                  "originalPrice": "7 188 ₽",
+                  "title": "Фитолампа для растений Quantum Board 200 вт полного спектра диоды LM301B+"
+                },
+                "price": 6469
+              },
+              {
+                "sku": "2531001895",
+                "link": "/product/fitolampa-dlya-rasteniy-200vt-quantum-board-polnogo-spektra-diody-fitosvetilnik-2531001895/",
+                "availability": "inStock",
+                "data": {
+                  "searchableText": "201",
+                  "textRs": [
+                    {
+                      "type": "text",
+                      "content": "201"
+                    }
+                  ],
+                  "price": "6 911 ₽",
+                  "coverImage": "https://ir.ozone.ru/s3/multimedia-1-r/wc140/12106331631.jpg",
+                  "originalPrice": "7 679 ₽",
+                  "title": "Фитолампа для растений 200Вт Quantum Board полного спектра диоды / фитосветильник"
+                },
+                "price": 6911
+              },
+              {
+                "sku": "2031616091",
+                "link": "/product/fitolampa-dlya-rasteniy-polnogo-spektra-240vt-quantum-board-2031616091/",
+                "active": true,
+                "availability": "inStock",
+                "data": {
+                  "searchableText": "240",
+                  "textRs": [
+                    {
+                      "type": "text",
+                      "content": "240"
+                    }
+                  ],
+                  "price": "11 499 ₽",
+                  "coverImage": "https://ir.ozone.ru/s3/multimedia-1-b/wc140/14166489719.jpg",
+                  "originalPrice": "12 776 ₽",
+                  "title": "Фитолампа для растений полного спектра 240Вт Quantum Board"
+                },
+                "price": 11499
+              },
+              {
+                "sku": "1010386190",
+                "link": "/product/fitolampa-dlya-rasteniy-quantum-board-c-diodami-lm-301-480-vatt-kvantum-bord-1010386190/",
+                "availability": "inStock",
+                "data": {
+                  "searchableText": "480",
+                  "textRs": [
+                    {
+                      "type": "text",
+                      "content": "480"
+                    }
+                  ],
+                  "price": "26 707 ₽",
+                  "coverImage": "https://ir.ozone.ru/s3/multimedia-1-f/wc140/14382566259.jpg",
+                  "originalPrice": "29 675 ₽",
+                  "title": "Фитолампа для растений Quantum Board c диодами LM-301, 480 ватт, квантум борд"
+                },
+                "price": 26707
+              }
+            ]
+          }
+        ],
+        "lexemes": {
+          "additionalText": "Еще",
+          "ariaLabel": "Подсказка",
+          "chooseRingSizeText": "Подобрать размер кольца",
+          "chooseRingSizeTitle": "Подбор размера кольца",
+          "chooseSizeText": "Выберите размер",
+          "chooseVariantText": "Выбрать",
+          "notAvailableCombinationText": "Нет в таком сочетании",
+          "notAvailableText": "Нет в наличии",
+          "ringSizeBtnText": "Показать",
+          "ringSizeCloseBtnText": "Закрыть",
+          "ringSizeLabel": "Длина в мм",
+          "ringSizePlaceHolder": "Введите значение",
+          "ringSizeTactic1": "Возьмите измерительную ленту или же любой шнурок, нитку, которую потом можно измерить по линейке.",
+          "ringSizeTactic2": "Обмотайте",
+          "ringSizeTactic3": "ленту вокруг пальца (например, безымянного, если вы подбираете обручальное или помолвочное кольцо).",
+          "ringSizeTactic4": "Измерьте длину этого отрезка в миллиметрах с помощью линейки. Введите получившееся значение.",
+          "ringSizeTactic5": "Не измеряйте замерзшие пальцы",
+          "ringSizeTactic6": "Замеры лучше делать в конце дня",
+          "ringSizeTactic7": "Если сустав шире самого пальца – измеряйте диаметр сустава",
+          "ringSizeTactic8": "Ваш размер кольца:",
+          "showAllText": "Посмотреть все",
+          "showMoreText": "Показать еще"
+        },
+        "ringSizeTacticRs": [
+          {
+            "type": "text",
+            "content": "Возьмите измерительную ленту или же любой шнурок, нитку, которую потом можно измерить по линейке."
+          },
+          {
+            "type": "newLine"
+          },
+          {
+            "type": "text",
+            "content": "Обмотайте ленту вокруг пальца (например, безымянного, если вы подбираете обручальное или помолвочное кольцо)."
+          }
+        ]
+      }
+    ],
+    "webGallery": [
+      {
+        "sku": "2031616091",
+        "coverImage": "https://ir.ozone.ru/s3/multimedia-1-b/14166489719.jpg",
+        "images": [
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-b/14166489719.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #1"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-9/14790835269.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #2"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-h/15282097001.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #3"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-m/14790835246.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #4"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-g/14790835204.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #5"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-o/14790835248.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #6"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-l/15282097005.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #7"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-q/14790834782.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #8"
+          },
+          {
+            "src": "https://ir.ozone.ru/s3/multimedia-1-s/14114488528.jpg",
+            "alt": "Фитолампа для растений полного спектра 240Вт Quantum Board #9"
+          }
+        ],
+        "videoCover": {},
+        "isWithParandja": false,
+        "isWithWave": false,
+        "isUnavailable": false,
+        "galleryTipRs": [
+          {
+            "type": "text",
+            "content": "Для просмотра удерживайте левую кнопку мыши"
+          },
+          {
+            "type": "newLine"
+          },
+          {
+            "type": "text",
+            "content": "и вращайте влево или вправо,"
+          },
+          {
+            "type": "newLine"
+          },
+          {
+            "type": "text",
+            "content": "кликните по изображению, чтобы увеличить его"
+          }
+        ],
+        "lexemes": {
+          "galleryTip1": "Для просмотра удерживайте левую кнопку мыши",
+          "galleryTip2": "и вращайте влево или вправо",
+          "galleryTip3": "кликните по изображению, чтобы увеличить его",
+          "imageAdditionalTitle": "Дополнительно",
+          "imageCaptionDesktop": "Чтобы рассмотреть товар, зажмите левую кнопку мыши поверх фото и потяните в любую сторону",
+          "imageCaptionMobile": "Удерживайте палец на фото и вращайте товар в любую сторону",
+          "imageTitle": "Фотографии",
+          "openGalleryBtnText": "Перейти в галерею",
+          "photo360Title": "Фото 360",
+          "photoShootAlt": "На фотосессии",
+          "videoCoverTitle": "Видео обложка",
+          "videoText": "видео",
+          "videoTitle": "Видео"
+        },
+        "galleryRatio": 0.75,
+        "similarItemsURL": "/modal/similar-products?product_id=2031616091",
+        "imageRendering": "",
+        "imageQualityInModal": 2500,
+        "similarItemsText": "Похожие"
+      }
+    ],
+    "webShortCharacteristics": [
+      {
+        "titleRs": [
+          {
+            "type": "text",
+            "content": "О товаре",
+            "font": "tsHeadline500Medium",
+            "color": "textPrimary"
+          }
+        ],
+        "goTo": {
+          "text": "Перейти к описанию",
+          "styleType": "NEUTRAL_PRIMARY",
+          "common": {
+            "action": {
+              "behavior": "BEHAVIOR_TYPE_SCROLL_TO_WIDGET",
+              "link": "section-description"
+            }
+          }
+        },
+        "characteristics": [
+          {
+            "id": "Type_0",
+            "title": {
+              "textRs": [
+                {
+                  "type": "text",
+                  "content": "Тип",
+                  "font": "tsBodyM",
+                  "color": "textSecondary"
+                }
+              ]
+            },
+            "values": [
+              {
+                "id": "Type_0",
+                "text": "Фитосветильник",
+                "textColor": "textPrimary",
+                "textStyle": "tsBody400Small"
+              }
+            ]
+          },
+          {
+            "id": "EnergyClass_2",
+            "title": {
+              "textRs": [
+                {
+                  "type": "text",
+                  "content": "Класс энергопотребления",
+                  "font": "tsBodyM",
+                  "color": "textSecondary"
+                }
+              ],
+              "hint": {
+                "iconName": "ic_m_info_filled",
+                "iconColor": "graphicQuaternary",
+                "textRs": [
+                  {
+                    "type": "text",
+                    "content": "Характеризует экономичность использования электроэнергии. Ранжируется от A+++ до G, где A+++ - лучший показатель, а G - худший"
+                  }
+                ]
+              }
+            },
+            "values": [
+              {
+                "id": "EnergyClass_0",
+                "text": "A+",
+                "textColor": "textPrimary",
+                "textStyle": "tsBody400Small"
+              }
+            ]
+          },
+          {
+            "id": "PowerV_3",
+            "title": {
+              "textRs": [
+                {
+                  "type": "text",
+                  "content": "Вид питания",
+                  "font": "tsBodyM",
+                  "color": "textSecondary"
+                }
+              ]
+            },
+            "values": [
+              {
+                "id": "PowerV_0",
+                "text": "От сети 220В",
+                "textColor": "textPrimary",
+                "textStyle": "tsBody400Small"
+              }
+            ]
+          },
+          {
+            "id": "LampVoltage_4",
+            "title": {
+              "textRs": [
+                {
+                  "type": "text",
+                  "content": "Напряжение питания, В",
+                  "font": "tsBodyM",
+                  "color": "textSecondary"
+                }
+              ]
+            },
+            "values": [
+              {
+                "id": "LampVoltage_0",
+                "text": "220",
+                "textColor": "textPrimary",
+                "textStyle": "tsBody400Small"
+              }
+            ]
+          },
+          {
+            "id": "DegreeProtection_5",
+            "title": {
+              "textRs": [
+                {
+                  "type": "text",
+                  "content": "Степень защиты",
+                  "font": "tsBodyM",
+                  "color": "textSecondary"
+                }
+              ]
+            },
+            "values": [
+              {
+                "id": "DegreeProtection_0",
+                "text": "IP65",
+                "textColor": "textPrimary",
+                "textStyle": "tsBody400Small"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "webDelivery": [
+      {}
+    ],
+    "webCurrentSeller": [
+      {
+        "sellerCell": {
+          "settings": {
+            "topPadding": "PADDING_400",
+            "bottomPadding": "PADDING_400",
+            "leftPadding": "PADDING_400",
+            "rightPadding": "PADDING_500",
+            "disableSeparator": true
+          },
+          "leftBlock": {
+            "common": {
+              "testInfo": {
+                "automatizationId": "seller-logo"
+              }
+            },
+            "rightPadding": "PADDING_400",
+            "icon": {
+              "shape": "SQUIRCLE",
+              "backgroundImage": "https://cdn1.ozonusercontent.com/s3/marketing-api/banners/HM/eL/c96/HMeL8e8EyAAyWCQeeWFvVxwCNyGWIEnM.jpg",
+              "backgroundColor": "bgSecondary"
+            }
+          },
+          "centerBlock": {
+            "title": {
+              "text": "Moduled",
+              "textColor": "textPrimary",
+              "typographyToken": "tsCompactControl500Medium",
+              "maxLines": 1,
+              "truncatingMode": "TAIL"
+            },
+            "subtitle": {
+              "text": "Перейти",
+              "textColor": "textSecondary",
+              "typographyToken": "tsBody400Small",
+              "maxLines": 1,
+              "truncatingMode": "TAIL"
+            },
+            "titleIcon": {
+              "icon": "ic_m_status_points_filled",
+              "tintColor": "graphicTertiary"
+            }
+          },
+          "common": {
+            "action": {
+              "behavior": "BEHAVIOR_TYPE_REDIRECT",
+              "link": "https://www.ozon.ru/seller/moduled/"
+            },
+            "testInfo": {
+              "automatizationId": "webCurrentSellerAll"
+            }
+          }
+        },
+        "rating": {
+          "icon": {
+            "size": "SIZE_400",
+            "shape": "SHAPE_NONE",
+            "icon": {
+              "icon": "ic_m_star_filled",
+              "tintColor": "graphicWarningPrimary"
+            },
+            "testInfo": {
+              "automatizationId": "rating-icon"
+            }
+          },
+          "title": {
+            "text": "4.9",
+            "textColor": "textPrimary",
+            "textAlignment": "CENTER",
+            "preset": "PRESET_CUSTOM",
+            "typographyToken": "tsCompactControl300XSmall",
+            "testInfo": {
+              "automatizationId": "rating-value"
+            }
+          },
+          "backgroundColor": "bgSecondary",
+          "action": {
+            "behavior": "BEHAVIOR_TYPE_COMPOSER_NESTED_PAGE",
+            "link": "/modal/shop-in-shop-rating-popover"
+          },
+          "backgroundHover": "bgActiveSecondary"
+        },
+        "backgroundColor": "layerFloor1",
+        "innerBackgroundColor": "bgSecondary",
+        "loadingWithWebDelivery": true,
+        "sellerCellHoverColor": "textActiveAction",
+        "trustFactorsSettings": {
+          "trustFactorsToShow": 3,
+          "showMoreBlock": {
+            "settings": {
+              "disableSeparator": true
+            },
+            "centerBlock": {
+              "title": {
+                "text": "Ещё о магазине",
+                "textColor": "textAction",
+                "typographyToken": "tsCompactControl400Small",
+                "maxLines": 1,
+                "truncatingMode": "TAIL"
+              }
+            },
+            "rightBlock": {
+              "alignment": "ALIGNMENT_CENTER",
+              "leftPadding": "PADDING_300",
+              "icon": {
+                "size": "SIZE_300",
+                "shape": "SHAPE_NONE",
+                "icon": {
+                  "icon": "ic_s_circle_chevron_down_filled",
+                  "tintColor": "graphicNeutral"
+                }
+              }
+            },
+            "common": {
+              "testInfo": {
+                "automatizationId": "more-features"
+              }
+            }
+          },
+          "hoverColorIcon": "bgActivePrimary",
+          "hoverColorTitle": "textActiveAction"
+        }
+      }
+    ]
+  },
+  "url": "https://www.ozon.ru/product/fitolampa-dlya-rasteniy-polnogo-spektra-240vt-quantum-board-2031616091/",
+  "characteristics": [
+    {
+      "name": "Артикул",
+      "value": "2031616091"
+    },
+    {
+      "name": "Тип",
+      "value": "Фитосветильник"
+    },
+    {
+      "name": "Класс энергопотребления",
+      "value": "A+"
+    },
+    {
+      "name": "Вид питания",
+      "value": "От сети 220В"
+    },
+    {
+      "name": "Напряжение питания, В",
+      "value": "220"
+    },
+    {
+      "name": "Степень защиты",
+      "value": "IP65"
+    },
+    {
+      "name": "Макс. мощность ламп, Вт",
+      "value": "240"
+    },
+    {
+      "name": "Площадь освещения, кв.м",
+      "value": "3"
+    },
+    {
+      "name": "Вид ламп",
+      "value": "Светодиодная , Ультрафиолетовая"
+    },
+    {
+      "name": "Тип цоколя",
+      "value": "Без цоколя"
+    },
+    {
+      "name": "Особенности светильников",
+      "value": "Диммирование , Регулировка по высоте"
+    },
+    {
+      "name": "Крепление",
+      "value": "Подвесное"
+    },
+    {
+      "name": "Ширина, мм",
+      "value": "205"
+    },
+    {
+      "name": "Высота, мм",
+      "value": "20"
+    },
+    {
+      "name": "Длина, мм",
+      "value": "330"
+    },
+    {
+      "name": "Гарантия",
+      "value": "1 год"
+    },
+    {
+      "name": "Страна-изготовитель",
+      "value": "Китай"
+    },
+    {
+      "name": "Количество ламп, шт",
+      "value": "1"
+    },
+    {
+      "name": "Особенности защиты, корпуса :",
+      "value": "Пылезащищенность , Защита от повышенного напряжения , Защита от короткого замыкания"
+    }
+  ],
+  "descriptions": [
+    "Описание Технические характеристики Две панели с мощными алюминиевыми радиаторами. Имеют 576 фирменных диодов LM301b, с длинной волны от 450-660 нанометров, 3000-5000К, 200 моль/с. Эффективно покрывает до 3х кВм, площади. Безопасное расстояние 20-25см. от растения. Светильник оснащен диодами теплого дневного света, синими, красными, дальним красным и ультрафиолетовым. Срок службы диодов Самсунг 50 000 часов, без деградации. Все для начало работы уже в комплекте! Комплект креплений (стальные тросики, карабины, крюки), быстро-регулируемые подвесы, блок питания с возможностью регулировки мощности. Возможность использования на любых высотах Максимальная длинна подвесов достигает 1,9 метров. Крепкие стальные карабины Подвесы способны выдержать суммарную нагрузку до 64 кг. Возможность использования в Гроубоксе! Вариативность креплений позволяет использовать светильник даже в самых маленьких пространствах. Реальный полный спектр! Топовые диоды от Samsung и Epistar позволяют максимально эффективно передавать растению весь спектр света, что позволяет достичь условий даже лучше, чем в открытом грунте, под солнцем! Диоды lm301 (3000K, 5000K) + 660nm + IR + UV полного спектра Расширенная PAR карта Равномерное покрытие света позволяет получать достаточное количества света даже в самых дальних углах. Подходит для всех типов растений Функция переключения режимов светильника (Veg/Bloom) позволяет эффективно использовать лампу, как на стадии вегетации, так и на финальной стадии цветения. Увеличенный алюминиевый радиатор Мощный и бесшумный радиатор эффективно отводит лишнее тепло от платы светильника, что позволяет диодам работать максимально производительно! Товар точно доедет до вас в сохранности! Надежная двойная упаковка максимально эффективно защитит светильник и комплектующие. Возможность комбинировать от 120 Вт. до 960 Вт. Показать полностью",
+    "Комплектация Две диодные панели с мощным алюминиевым радиатором, с блоком питания и регулировкой яркости, в комплекте регулируемые потолочные подвесы и стальные тросики для подвеса."
+  ],
+  "description_images": [
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-l/ww1200/6648932073.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-u/ww1200/6648932082.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-8/ww1200/6648932024.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-b/ww1200/6648932027.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-o/ww1200/6648932076.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-1-q/ww1200/6958855898.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-r/ww1200/6648932079.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-6/ww1200/6648932022.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-i/ww1200/6648932070.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-j/ww1200/6648932071.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-t/ww1200/6648932081.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-m/ww1200/6648932074.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-f/ww1200/6648932031.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-a/ww1200/6648932026.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-x/ww1200/6648932085.jpg",
+      "alt": ""
+    },
+    {
+      "url": "https://ir.ozone.ru/s3/multimedia-w/ww1200/6648932084.jpg",
+      "alt": ""
+    }
+  ],
+  "description_loaded": true,
+  "characteristics_loaded": true,
+  "delivery_text": null
+}

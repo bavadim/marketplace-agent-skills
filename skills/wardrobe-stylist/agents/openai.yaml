@@ -1,0 +1,7 @@
+interface:
+  display_name: "Wardrobe Stylist"
+  short_description: "Choose a personal style, coordinated outfits and clothes"
+  default_prompt: "Use $wardrobe-stylist to help me dress better and choose a personal clothing style, collecting any missing details and finding coordinated outfits with shopping links."
+
+policy:
+  allow_implicit_invocation: true
