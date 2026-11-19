@@ -1,0 +1,11 @@
+{
+  "URLBlocklist": ["*"],
+  "URLAllowlist": ["https://ozon.ru", "https://ozone.ru", "https://aliexpress.ru", "https://alicdn.com", "about:blank"],
+  "DownloadRestrictions": 3,
+  "FileSelectionDialogsAllowed": false,
+  "PrintingEnabled": false,
+  "PasswordManagerEnabled": false,
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "ExtensionInstallBlocklist": ["*"]
+}

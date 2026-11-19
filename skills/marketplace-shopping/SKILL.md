@@ -7,6 +7,8 @@ description: Find and compare tools, manufacturing parts and other products acro
 
 ## Interface
 
+If the configured marketplace MCP exposes `authorize`, call it before any Ozon workflow. On `authorization_required`, give only its viewer link to the current user and pause; never ask for the viewer key, Ozon password or SMS code in chat. Once they return, call `authorize` again and proceed through the MCP tools only on `success`. Do not silently switch to a different browser profile when an authorization check is required.
+
 Run `python3 scripts/shop.py capabilities` or `python3 scripts/shop.py call --request REQUEST.json --output RESULT.json` from this skill directory. Use absolute request/result paths outside the skill. Stdin is supported with `--request -`.
 
 All normal reads use **both marketplaces**. Pass returned `ref` values unchanged; the provider factory routes them. Do not ask the user which marketplace is active. The implementations and browser/session mechanics are bundled in `assets/marketplace/`.

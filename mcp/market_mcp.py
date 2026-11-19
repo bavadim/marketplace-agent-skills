@@ -3,6 +3,7 @@ import argparse
 from contextvars import ContextVar
 import fcntl
 import hashlib
+import hmac
 import json
 import os
 from pathlib import Path
@@ -29,7 +30,7 @@ SHOP = REPO / 'skills/marketplace-shopping/scripts/shop.py'
 ACCOUNTS = REPO / 'skills/marketplace-accounts/scripts/accounts.py'
 READ = {'search': SHOP, 'product': SHOP, 'quote': SHOP, 'session.status': ACCOUNTS}
 ARGUMENTS = {'search': {'query', 'providers', 'limit'}, 'product': {'ref', 'variant_limit'},
-             'quote': {'ref', 'city', 'quantity'}, 'session_status': {'providers'}}
+             'quote': {'ref', 'city', 'quantity'}, 'session_status': {'providers'}, 'authorize': set()}
 ADMIN = {'session.login.start', 'session.login.status', 'session.login.finish',
          'session.login.cancel', 'session.validate', 'session.forget'}
 SLOT = re.compile(r'[a-f0-9]{32}')
@@ -62,6 +63,7 @@ class Grants:
         self.sql('''CREATE TABLE IF NOT EXISTS grants (
           slot TEXT PRIMARY KEY, label TEXT NOT NULL, digest TEXT UNIQUE NOT NULL,
           expires_at INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0)''')
+        self.sql('CREATE TABLE IF NOT EXISTS viewer_keys (slot TEXT PRIMARY KEY, digest TEXT NOT NULL)')
 
     def sql(self, statement, bindings=()):
         conn = sqlite3.connect(self.db, timeout=5)
@@ -92,6 +94,19 @@ class Grants:
     def revoke(self, slot):
         return self.sql('UPDATE grants SET revoked=1 WHERE slot=? AND revoked=0 RETURNING slot',
                         (slot,)) is not None
+
+    def set_viewer_key(self, slot):
+        if not self.active(slot):
+            raise ValueError('inactive grant')
+        key = secrets.token_urlsafe(24)
+        self.sql('INSERT OR REPLACE INTO viewer_keys VALUES (?,?)',
+                 (slot, hashlib.sha256(key.encode()).hexdigest()))
+        return key
+
+    def verify_viewer(self, slot, key):
+        row = self.sql('''SELECT v.digest FROM viewer_keys v JOIN grants g USING(slot)
+                          WHERE slot=? AND revoked=0 AND expires_at>?''', (slot, int(time.time())))
+        return bool(row and hmac.compare_digest(row[0], hashlib.sha256(key.encode()).hexdigest()))
 
 
 class Engine:
@@ -197,7 +212,7 @@ class CatalogServer(MCPServer):
         return await super().call_tool(name, arguments, context)
 
 
-def create_app(grants, engine, hosts):
+def create_app(grants, engine, hosts, viewer=None):
     server = CatalogServer('marketplace-catalog', log_level='CRITICAL')
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
 
@@ -205,7 +220,13 @@ def create_app(grants, engine, hosts):
         slot = Principal.get()
         if not slot or not grants.active(slot):
             raise PermissionError('access required')
+        if viewer and method != 'session.status' and viewer.busy(slot):
+            return {'ok': False, 'status': 'authorization_in_progress'}
         params = {name: value for name, value in params.items() if value is not None}
+        ozon = ((method == 'search' and 'ozon' in params.get('providers', ('ozon', 'aliexpress')))
+                or (method in ('product', 'quote') and params['ref'].startswith('ozon:')))
+        if viewer and ozon and not viewer.checked(slot):
+            return {'ok': False, 'status': 'authorization_check_required', 'next_tool': 'authorize'}
         result = engine.call(slot, method, params)
         if method == 'session.status':
             rows = result.get('data', {}).get('sessions', [])
@@ -238,9 +259,19 @@ def create_app(grants, engine, hosts):
         """Read saved connection metadata for this credential only; not a live login check."""
         return call('session.status', {'providers': providers})
 
+    if viewer:
+        @server.tool(structured_output=True)
+        def authorize() -> dict[str, Any]:
+            """Check Ozon access first. If the user must act, return a private viewer link."""
+            slot = Principal.get()
+            if not slot or not grants.active(slot):
+                raise PermissionError('access required')
+            return viewer.authorize(slot)
+
     app = server.streamable_http_app(stateless_http=True, json_response=True, max_request_body_size=32_768,
               transport_security=TransportSecuritySettings(allowed_hosts=hosts, allowed_origins=[]))
-    return PrivateTransport(app, grants, hosts)
+    private = PrivateTransport(app, grants, hosts)
+    return viewer.wrap(private) if viewer else private
 
 
 def main():
@@ -250,6 +281,7 @@ def main():
     subs.add_parser('serve')
     issue = subs.add_parser('issue'); issue.add_argument('label'); issue.add_argument('--days', type=int, default=30, choices=range(1, 91), metavar='1..90')
     revoke = subs.add_parser('revoke'); revoke.add_argument('slot')
+    viewer_key = subs.add_parser('viewer-key'); viewer_key.add_argument('slot')
     account = subs.add_parser('account'); account.add_argument('slot'); account.add_argument('operation', choices=sorted(ADMIN)); account.add_argument('--provider', choices=['ozon', 'aliexpress'], default='ozon'); account.add_argument('--handoff-id')
     args = parser.parse_args()
     root = Path(os.environ.get('MARKET_MCP_DATA', '/data'))
@@ -258,9 +290,12 @@ def main():
     grants, engine = Grants(root), Engine(root)
     if args.action == 'serve':
         import uvicorn
+        from viewer import Viewer
         hosts = os.environ.get('MARKET_MCP_HOSTS', '127.0.0.1:8000,localhost:8000').split(',')
-        uvicorn.run(create_app(grants, engine, hosts), host=os.environ.get('MARKET_MCP_BIND', '127.0.0.1'),
-                    port=8000, workers=1, access_log=False, proxy_headers=False)
+        origin = os.environ.get('MARKET_MCP_VIEWER_ORIGIN')
+        viewer = Viewer(grants, engine, origin, limit=int(os.environ.get('MARKET_MCP_VIEWER_LIMIT', '4'))) if origin else None
+        uvicorn.run(create_app(grants, engine, hosts, viewer), host=os.environ.get('MARKET_MCP_BIND', '127.0.0.1'),
+                    port=8000, workers=1, access_log=False, proxy_headers=False, ws_max_size=65536)
     elif args.action == 'issue':
         slot, key = grants.issue(args.label, int(time.time()) + args.days * 86400)
         print(json.dumps({'slot': slot, 'bearer': key}))
@@ -268,6 +303,10 @@ def main():
         if not grants.revoke(args.slot):
             parser.error('grant not found or already revoked')
         print(json.dumps({'revoked': True}))
+    elif args.action == 'viewer-key':
+        if not SLOT.fullmatch(args.slot) or not grants.active(args.slot):
+            parser.error('unknown or inactive grant')
+        print(json.dumps({'viewer_key': grants.set_viewer_key(args.slot)}))
     else:
         if not SLOT.fullmatch(args.slot) or (not grants.active(args.slot) and args.operation not in {'session.forget', 'session.login.cancel'}):
             parser.error('unknown or inactive grant')

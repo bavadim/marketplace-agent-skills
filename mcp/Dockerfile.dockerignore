@@ -1,7 +1,10 @@
 **
 !requirements.txt
 !mcp/
-!mcp/market_mcp.py
+!mcp/*.py
+!mcp/view.html
+!mcp/view-client.js
+!mcp/chromium-policy.json
 !mcp/requirements.txt
 !skills/
 !skills/marketplace-shopping/

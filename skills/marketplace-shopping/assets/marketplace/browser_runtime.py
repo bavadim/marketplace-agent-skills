@@ -210,13 +210,14 @@ def owned_driver(factory):
 
 class ManagedBrowser:
     """Lazy context, one stable profile per provider, exclusive profile/session locks."""
-    def __init__(self, provider, session=None, use_saved_session=True, executable=None, timeout_ms=30000):
+    def __init__(self, provider, session=None, use_saved_session=True, executable=None, timeout_ms=30000, *, interactive_x11=False):
         if provider not in SITES:
             raise BrowserError("invalid_provider")
         self.provider = provider
         self.session = Path(session) if session else legacy_session(provider) if use_saved_session else None
         self.canonical = use_saved_session and (session is None or Path(session).absolute() == legacy_session(provider).absolute())
         self.executable, self.timeout_ms = executable, timeout_ms
+        self.interactive_x11 = interactive_x11
         self.stack = contextlib.ExitStack()
         self.driver = self._context = self.page = None
         self.document, self.info = {}, {}
@@ -238,7 +239,10 @@ class ManagedBrowser:
         vendor_imports()
         from session_store import session_lock
         try:
-            from patchright.sync_api import sync_playwright
+            if self.interactive_x11:
+                from playwright.sync_api import sync_playwright
+            else:
+                from patchright.sync_api import sync_playwright
         except ImportError as error:
             raise BrowserError("browser_setup_required") from error
         try:
@@ -271,7 +275,14 @@ class ManagedBrowser:
             except BlockingIOError as error:
                 raise BrowserError("session_busy") from error
             self.driver = self.stack.enter_context(owned_driver(sync_playwright))
-            self._context = self.driver.chromium.launch_persistent_context(str(profile), **launch_options(self.executable, self.timeout_ms))
+            opts = launch_options(self.executable, self.timeout_ms)
+            if self.interactive_x11:
+                opts['env'].update({key: os.environ[key] for key in ('DISPLAY', 'XAUTHORITY')})
+                opts.update(headless=False, no_viewport=True)
+                opts.pop('viewport')
+                opts.pop('ignore_default_args', None)
+                opts['args'] = ['--no-proxy-server', '--ozone-platform=x11', '--disable-gpu', '--window-position=0,0', '--window-size=880,920']
+            self._context = self.driver.chromium.launch_persistent_context(str(profile), **opts)
             self.group_check = verify_groups(self._context.browser)
             if seed:
                 self._context.clear_cookies()
