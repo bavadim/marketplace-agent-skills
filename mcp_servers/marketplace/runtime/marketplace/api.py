@@ -3,8 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 import copy,datetime as dt,hashlib,json,os
 from pathlib import Path
 from common import now,read_json,write_private,measurements
-from schema import SITES,identity,order_identity,order_rows,options,CART_URLS
-from providers.factory import create_provider,for_product,for_order
+from schema import SITES,identity,options,CART_URLS
+from providers.factory import create_provider,for_product
 from providers.transport import state_root
 from compare import compare
 
@@ -28,25 +28,18 @@ METHODS={
  'session.login.finish':(['handoff_id'],[]),
  'session.login.cancel':(['handoff_id'],[]),
  'session.forget':(['providers'],[]),
- 'orders.list':([],['providers','active_only','max_orders','max_pages']),
- 'orders.get':(['ref'],[]),'orders.code':(['ref','path'],[]),
- 'orders.schedule':([],['input','providers','active_only','max_orders','max_pages','date','days','warn_days','state']),
- 'orders.enrich':(['input'],['max_products','images_dir']),
- 'orders.ack':(['state','fingerprints'],[]),
  'measurements.parse':(['attributes'],['source_url']),
 }
-SCOPES={'shopping':{'search','product','quote','images','review','compare','cart.list','cart.set','cart.apply','cart.remove','session.ensure','session.refresh','session.status'},
-        'orders':{m for m in METHODS if m.startswith('orders.')}|{'session.ensure','session.refresh','session.status','measurements.parse'}}
+SCOPES={'shopping':{'search','product','quote','images','review','compare','cart.list','cart.set','cart.apply','cart.remove','session.ensure','session.refresh','session.status'}}
 SESSION_METHODS={m for m in METHODS if m.startswith('session.')}
 SCOPES['accounts']=SESSION_METHODS
 SCOPES['shopping']|=SESSION_METHODS
-SCOPES['orders']|=SESSION_METHODS
 
 
 def capabilities(scope):
  return {'schema_version':2,'scope':scope,'default_providers':list(SITES),'methods':{m:{'required':METHODS[m][0],'optional':METHODS[m][1]} for m in sorted(SCOPES[scope])},
-         'limitations':{'aliexpress':'Live empty active orders verified; shipment details and pickup-code export unavailable.',
-                        'ozon':'Delivery widget may omit cost/address; quotes are unknown until observed. Receipt export is a daily numeric card.'}}
+         'limitations':{'aliexpress':'Search and delivery coverage may be partial.',
+                        'ozon':'Delivery widget may omit cost/address; quotes are unknown until observed.'}}
 
 
 def validate(request,scope):
@@ -58,12 +51,12 @@ def validate(request,scope):
  if set(required)-set(params) or set(params)-set(required+optional+(['query'] if method=='search' else [])):raise ValueError('invalid_parameters')
  if 'providers' in params:
   if not isinstance(params['providers'],list) or not params['providers'] or len(set(params['providers']))!=len(params['providers']) or any(s not in SITES for s in params['providers']):raise ValueError('invalid_providers')
- for key in ['quantity','expected_quantity','limit','variant_limit','max_orders','max_pages','max_products','days','warn_days']:
+ for key in ['quantity','expected_quantity','limit','variant_limit']:
   if key in params:
    v=params[key]
    if type(v) is not int or v<0:raise ValueError('invalid_integer')
-   if key in ('limit','max_orders','max_pages','max_products','days') and not v:raise ValueError('positive_integer_required')
- for key,maximum in [('limit',100),('variant_limit',24),('max_orders',100),('max_pages',20),('max_products',30),('days',31),('warn_days',30)]:
+   if key in ('limit',) and not v:raise ValueError('positive_integer_required')
+ for key,maximum in [('limit',100),('variant_limit',24)]:
   if params.get(key,0)>maximum:raise ValueError('limit_exceeded')
  if method=='images' and params.get('limit',12)>32:raise ValueError('image_limit_max_32')
  if method in ('product','quote') and params.get('quantity',1)<1:raise ValueError('positive_quantity_required')
@@ -91,8 +84,7 @@ def validate(request,scope):
    if not n.is_finite() or not 0<=n<=5:raise ValueError('invalid_seller_rating')
  if 'budget' in params:validate_cap(params['budget'])
  if 'expected_options' in params and (not isinstance(params['expected_options'],dict) or any(not isinstance(v,(str,list)) for v in params['expected_options'].values())):raise ValueError('invalid_options')
- if 'active_only' in params and type(params['active_only']) is not bool:raise ValueError('boolean_required')
- for k in ('date','deadline'):
+ for k in ('deadline',):
   if k in params:dt.date.fromisoformat(params[k])
  for key in ('ref','query','city','path','input','images_dir','profile','state','unit','source_url','handoff_id'):
   if key in params and (not isinstance(params[key],str) or not params[key] or len(params[key])>8192):raise ValueError('invalid_string')
@@ -104,7 +96,6 @@ def validate(request,scope):
   import uuid
   if str(uuid.UUID(params['handoff_id']))!=params['handoff_id']:raise ValueError('invalid_handoff_id')
  if method in ('product','quote','images'):identity(params['ref'])
- if method in ('orders.get','orders.code'):order_identity(params['ref'])
  return method,params
 
 
@@ -136,15 +127,6 @@ def summary(results):
 def sources(results):
  return [{'provider':r['provider'],'status':r.get('status'),'complete':r.get('complete',False),
           'warnings':r.get('warnings',[]),'failures':r.get('failures',[]),'coverage':r.get('coverage'),'reason':r.get('reason'),'observed_at':r.get('observed_at') or now()} for r in results]
-
-
-def order_list(params):
- results=read_all(params,lambda p:p.orders_list(params.get('active_only',True),params.get('max_orders',30),params.get('max_pages',5)))
- orders=[o for result in results for o in result.get('orders',[])]
- # Namespace every identifier; identical provider order numbers are unrelated.
- orders=list({o['ref']:o for o in orders}.values())
- return {'status':summary(results),'orders':orders,'items':order_rows(orders),'complete':all(r.get('complete',False) for r in results),
-         'sources':sources(results),'observed_at':now(),'scope':'active' if params.get('active_only',True) else 'history'}
 
 
 def product_from_file(path):
@@ -266,54 +248,5 @@ def dispatch(method,params):
    return account_dispatch(method,params)
   results=read_all(params,lambda p:p.session(method.split('.')[1],params.get('profile')))
   return {'status':summary(results),'sessions':results,'sources':sources(results)}
- if method=='orders.list':return order_list(params)
- if method=='orders.get':
-  site,oid=order_identity(params['ref']);result=for_order(params['ref']).order_get(oid)
-  return {**result,'items':order_rows(result.get('orders',[]))}
- if method=='orders.code':
-  site,oid=order_identity(params['ref']);return for_order(params['ref']).order_code(oid,params['path'])
- if method=='orders.schedule':
-  from agenda import agenda
-  from common import today
-  document=read_json(params['input']) if params.get('input') else {'data':order_list(params),'observed_at':now()}
-  data=document.get('data',document)
-  documents=[{'marketplace':source['provider'],'observed_at':source.get('observed_at') or document.get('observed_at') or data.get('observed_at'),
-              'data':{'status':source['status'],'complete':source.get('complete',False),'orders':[o for o in data.get('orders',[]) if o['provider']==source['provider']]}} for source in data.get('sources',[])]
-  if not documents:documents=[document]
-  result=agenda(documents,params.get('date') or today().isoformat(),params.get('days',7),params.get('warn_days',2))
-  seen=read_json(params['state']).get('acknowledged',{}) if params.get('state') and Path(params['state']).exists() else {}
-  result['pending_alerts']=[a for a in result['alerts'] if a['fingerprint'] not in seen]
-  result['status']=data.get('status','ok');result['sources']=data.get('sources',[])
-  return result
- if method=='orders.enrich':
-  document=read_json(params['input']);data=document.get('data',document);data=copy.deepcopy(data)
-  cache={};review=[];limit=params.get('max_products',10)
-  for order in data.get('orders',[]):
-   for shipment in order.get('shipments',[]):
-    for item in shipment.get('items',[]):
-     url=item.get('url');facts=None
-     if url:
-      key=(order['provider'],url)
-      if key not in cache and len(cache)<limit:
-       result=for_product(url).product(url);p=result.get('product')
-       parsed=measurements(p.get('specifications',[]),url) if p else {'unknown':True,'needs_review':[]}
-       parsed['status']=result['status'];parsed['observed_at']=now();parsed['provenance']='current_product_listing_not_shipping_measurement'
-       if p and (parsed['unknown'] or parsed['needs_review']):
-        parsed['review']={'description':p.get('description'),'images':p.get('images')}
-        if params.get('images_dir'):
-         path=str(Path(params['images_dir'])/hashlib.sha256(url.encode()).hexdigest()[:16]);parsed['review']['image_evidence']=for_product(url).images(url,path)['evidence']
-       cache[key]=parsed
-      facts=cache.get(key)
-     item['measurements']=facts
-     if not facts or facts.get('status')!='ok' or facts.get('unknown') or facts.get('needs_review'):review.append({'order_ref':order['ref'],'shipment_id':shipment['id'],'title':item.get('title'),'url':url})
-  data.update(status=data.get('status','ok'),enriched_at=now(),measurement_review_queue=review,measurement_coverage={'products_read':len(cache),'limit':limit,'complete':not review})
-  data['items']=order_rows(data.get('orders',[]));return data
- if method=='orders.ack':
-  import re
-  if not isinstance(params['fingerprints'],list) or not params['fingerprints'] or any(not re.fullmatch(r'[0-9a-f]{64}',f) for f in params['fingerprints']):raise ValueError('invalid_fingerprints')
-  path=Path(params['state']);seen=read_json(path).get('acknowledged',{}) if path.exists() else {}
-  cutoff=(dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=60)).isoformat();seen={k:v for k,v in seen.items() if v>=cutoff}
-  for fingerprint in params['fingerprints']:seen[fingerprint]=now()
-  write_private(path,{'acknowledged':seen});return {'status':'ok','acknowledged':len(params['fingerprints'])}
  if method=='measurements.parse':return {'status':'ok',**measurements(params['attributes'],params.get('source_url'))}
  raise ValueError('unknown_method')

@@ -45,12 +45,6 @@ def identity(ref):
     raise ValueError('invalid_product_ref')
 
 
-def order_identity(ref):
-    parts=str(ref).split(':',2)
-    if len(parts)!=3 or parts[0] not in SITES or parts[1]!='order' or not re.fullmatch(r'[\w-]{1,100}',parts[2]):raise ValueError('invalid_order_ref')
-    return parts[0],parts[2]
-
-
 def money(unit=None,currency='RUB',reference=None,conditional=None):
     return {'unit':amount(unit),'currency':currency,'reference':amount(reference),'conditional':conditional}
 
@@ -79,24 +73,3 @@ def base_product(site,pid,sku,url,title,stamp=None,stage='product'):
             'price':money(None),'delivery':delivery(),'seller':{'name':None,'id':None,'url':None,'rating':rating()},
             'product_rating':rating(),'available':None,'stock':None,'options':{},'variants':[],
             'variant_products':[],'variants_complete':False,'delivery_options':[],'image_evidence':None,'specifications':[],'description':None,'images':[],'evidence':[],'review':None,'warnings':[]}
-
-
-def order_rows(orders):
-    rows=[]
-    for order in orders:
-        site=order['provider'];oid=order['id'];oref=f'{site}:order:{oid}'
-        for shipment in order.get('shipments') or [None]:
-            row={'ref':oref,'provider':site,'order_id':oid,'order_url':order['url'],'observed_at':order.get('observed_at'),
-                 'shipment_id':shipment.get('id') if shipment else None,'status':shipment.get('status') if shipment else order.get('status','unknown'),
-                 'status_text':shipment.get('status_text') if shipment else order.get('status_text'),
-                 'delivery_text':shipment.get('delivery_text') if shipment else order.get('description'),
-                 'delivery_method':shipment.get('delivery_method') if shipment else None,'address':shipment.get('address') if shipment else None,
-                 'expected':shipment.get('expected') if shipment else None,'pickup_until':shipment.get('pickup_until') if shipment else None,
-                 'pickup_until_inclusive':shipment.get('pickup_until_inclusive') if shipment else None,
-                 'items':shipment.get('items',[]) if shipment else [],'complete':order.get('complete',False) if shipment else False,
-                 'missing':order.get('missing',[]) if not shipment else []}
-            row['row_ref']=oref+(':shipment:'+str(row['shipment_id']) if shipment else ':unresolved')
-            rows.append(row)
-    priority={'ready_for_pickup':0,'out_for_delivery':1,'in_transit':2,'processing':3,'unknown':4,'awaiting_payment':5,'delivered':6,'returned':7,'cancelled':8}
-    rows.sort(key=lambda r:(priority.get(r['status'],4),r.get('pickup_until') or (r.get('expected') or {}).get('to') or '9999',r['row_ref']))
-    return rows

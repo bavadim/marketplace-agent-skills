@@ -1,6 +1,6 @@
 # Marketplace MCP
 
-Закрытый Streamable HTTP `/mcp`. Инструменты: `search`, `product`, `quote`, `session_status`; `authorize` доступен при включённом noVNC. Нет корзины, оплат и произвольного управления браузером. Выдача поиска предварительная: точный вариант, цену и доставку проверяйте отдельно.
+Закрытый Streamable HTTP `/mcp`. Инструменты: `search`, `product`, `quote`, `session_status`; `authorize` доступен при включённом noVNC. MCP не предоставляет корзину, заказы, оплату или произвольное управление браузером. JS/HTML обслуживают отдельный вход через noVNC; `chromium-policy.json` задаёт политики браузера. Выдача поиска предварительная: точный вариант, цену и доставку проверяйте отдельно.
 
 ## Запуск
 
@@ -27,4 +27,4 @@ ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
 
 Для ручного мобильного входа задайте HTTPS `MARKET_MCP_VIEWER_ORIGIN`, добавьте его Host в `MARKET_MCP_HOSTS`, а на принимающей стороне направьте HTTPS и WebSocket viewer через туннель. Не публикуйте VNC/CDP и не логируйте параметры ссылок. Выдайте отдельный viewer key через `viewer-key SLOT`; пользователь завершает вход в удалённом Chromium. Повторите `authorize` и затем проверьте живой поиск и цену. Ключ viewer и bearer MCP — разные секреты.
 
-Проверки из корня: `hermes mcp test marketplace` и `PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s mcp_servers/marketplace/tests`. Офлайн-тесты не проверяют реальный вход и доступность витрины.
+Проверки из корня: `hermes mcp test marketplace` и `PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s tests/marketplace/mcp`. Офлайн-тесты не проверяют реальный вход и доступность витрины.

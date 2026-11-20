@@ -37,17 +37,6 @@ class AliExpressProvider(BackendProvider):
             try:rows.append(normalize(r,'search'))
             except (KeyError,ValueError):pass
         return {'status':status(raw),'provider':self.name,'products':rows,'complete':False,'observed_at':raw.get('observed_at') or now(),'warnings':['bounded_search']}
-    def orders_list(self,active_only=True,max_orders=30,max_pages=5):
-        if active_only:return super().orders_list(True,max_orders,max_pages)
-        active=super().orders_list(True,max_orders,max_pages);archive=super().orders_list(False,max_orders,max_pages)
-        unique={}
-        for order in active.get('orders',[])+archive.get('orders',[]):unique.setdefault(order['ref'],order)
-        good=[r for r in (active,archive) if r['status'] in ('ok','partial')]
-        return {'status':'ok' if len(good)==2 and all(r['status']=='ok' for r in good) else 'partial' if good else 'providers_unavailable',
-                'provider':self.name,'orders':list(unique.values())[:max_orders],
-                'complete':active['complete'] and archive['complete'] and len(unique)<=max_orders,
-                'observed_at':now(),'coverage':{'scope':'active_and_history','active':active.get('coverage'),'archive':archive.get('coverage')},
-                'warnings':active.get('warnings',[])+archive.get('warnings',[])}
     def _read(self,ref):
         site,pid,sku,url=identity(ref);return legacy(self.name,['product','--url',url])
     def product(self,ref,variant_limit=0,quantity=1,city=None,images_dir=None):

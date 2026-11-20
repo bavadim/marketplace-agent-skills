@@ -8,7 +8,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).parents[1]/'scripts'))
+sys.path.insert(0, str((Path(__file__).resolve().parents[3] / 'mcp_servers/marketplace/runtime/marketplace/vendors/ozon/scripts')))
 from ozon_browser import save_state, storage_state, private_bytes, group_summary, process_groups, navigation_error
 from ozon_network import public_ip
 from ozon_session import read_private

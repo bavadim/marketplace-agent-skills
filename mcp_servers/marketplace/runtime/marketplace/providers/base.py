@@ -16,10 +16,4 @@ class Provider(ABC):
     @abstractmethod
     def cart_set(self,ref,quantity,max_unit_price,operation_id,expected_quantity=None,expected_options=None):pass
     @abstractmethod
-    def orders_list(self,active_only=True,max_orders=30,max_pages=5):pass
-    @abstractmethod
-    def order_get(self,order_id):pass
-    @abstractmethod
-    def order_code(self,order_id,path):pass
-    @abstractmethod
     def session(self,action,profile=None):pass

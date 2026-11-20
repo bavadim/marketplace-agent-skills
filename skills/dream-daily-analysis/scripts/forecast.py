@@ -1,6 +1,7 @@
 """Calculate savings scenarios. Amounts are integer kopecks; no market data is used."""
 import argparse
 import json
+import sys
 from decimal import Decimal
 
 
@@ -38,5 +39,27 @@ def main():
     print(json.dumps(result, ensure_ascii=False))
 
 
-if __name__ == '__main__':
+def _self_test():
+    import unittest
+
+    class ForecastTests(unittest.TestCase):
+        def test_baseline_rounds_up(self):
+            self.assertEqual(forecast(10001, 5000, 2500)['baseline_months'], 3)
+
+        def test_without_contributions(self):
+            self.assertIsNone(forecast(10001, 5000, 0)['baseline_months'])
+            self.assertEqual(forecast(10001, 10001, 0)['baseline_months'], 0)
+
+        def test_negative_scenario_never_reaches_target_without_contributions(self):
+            self.assertIsNone(forecast(10001, 5000, 0, (-10,))['scenarios'][0]['months'])
+
+    suite = unittest.TestSuite()
+    for case in (ForecastTests,):
+        suite.addTests(unittest.defaultTestLoader.loadTestsFromTestCase(case))
+    return 0 if unittest.TextTestRunner().run(suite).wasSuccessful() else 1
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--self-test"]:
+        raise SystemExit(_self_test())
     main()

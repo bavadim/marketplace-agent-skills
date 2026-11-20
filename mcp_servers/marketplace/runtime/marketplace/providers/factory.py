@@ -1,5 +1,5 @@
 """One factory; provider selection is an internal implementation detail."""
-from schema import identity,order_identity,SITES
+from schema import identity
 
 def create_provider(name):
     if name=='ozon':
@@ -11,5 +11,3 @@ def create_provider(name):
     raise ValueError('unknown_provider')
 
 def for_product(ref):return create_provider(identity(ref)[0])
-def for_order(ref):return create_provider(order_identity(ref)[0])
-def all_providers():return [create_provider(name) for name in SITES]

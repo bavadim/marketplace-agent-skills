@@ -6,7 +6,7 @@ import sys
 import unittest
 from unittest.mock import patch,Mock
 
-sys.path.insert(0,str(Path(__file__).parents[1]/'scripts'))
+sys.path.insert(0,str((Path(__file__).resolve().parents[3] / 'mcp_servers/marketplace/runtime/marketplace/vendors/ozon/scripts')))
 from ozon_data import product,search_products,rubles,canonical,sku_from_url,parse_cart
 from ozon_cart import validate_quantity,verify_others,validate_plan,quantity_input
 from ozon_browser import background_options

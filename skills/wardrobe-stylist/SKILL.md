@@ -1,6 +1,7 @@
 ---
 name: wardrobe-stylist
-description: "Personal clothing and wardrobe styling. Use when the user wants to dress better, find or change their clothing style, refresh their wardrobe, choose clothes that suit them, or assemble outfits for a season, occasion, trip or everyday wear. Recognize requests such as 'хочу приодеться', 'подбери мне стиль', 'подбери одежду', 'что мне носить', 'собери образ' and 'обнови гардероб'. Start even without photos or measurements; collect relevant details, use marketplace skills before other retailers, verify exact sizes and offers, and deliver coordinated outfits, shopping links and personal try-on renders as appropriate to the request. Not for interior, graphic or interface design."
+license: MIT
+description: "Personal clothing and wardrobe styling. Use when the user wants to dress better, find or change their clothing style, refresh their wardrobe, choose clothes that suit them, or assemble outfits for a season, occasion, trip or everyday wear. Recognize requests such as “help me dress better,” “pick my style,” “what should I wear?” and “put together an outfit,” including equivalent requests in the user’s language. Start even without photos or measurements; collect relevant details, use the available marketplace catalog before other retailers, verify exact sizes and offers, and deliver coordinated outfits, shopping links and personal try-on renders as appropriate to the request. Not for interior, graphic or interface design."
 ---
 
 # Wardrobe stylist

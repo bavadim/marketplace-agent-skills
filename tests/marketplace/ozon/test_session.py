@@ -7,7 +7,8 @@ import time
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('ozon_session', Path(__file__).parents[1]/'scripts/ozon_session.py')
+SCRIPTS = Path(__file__).resolve().parents[3] / 'mcp_servers/marketplace/runtime/marketplace/vendors/ozon/scripts'
+spec = importlib.util.spec_from_file_location('ozon_session', SCRIPTS / 'ozon_session.py')
 session = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(session)
 

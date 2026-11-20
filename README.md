@@ -16,13 +16,11 @@
 
 ## Запуск и проверки
 
+Установите каталоги из `skills/` штатным установщиком агента или скопируйте в каталог его скиллов. `scripts/` внутри скилла — исполняемые помощники; их проверки запускаются флагом `--self-test`. Для общего прогона нужен Node.js.
+
 ```bash
-python3 scripts/install.py
 python -m pip install -r requirements.txt -r mcp_servers/marketplace/requirements.txt 'httpx==0.28.1'
-python scripts/validate.py
-python scripts/check.py
-python -m unittest discover -s mcp_servers/dream -p 'test_*.py'
-PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s mcp_servers/marketplace/tests
+python tests/run.py
 ```
 
 - Marketplace и Chromium запускаются на Linux-машине с проверенным доступом к нужным витринам. Hermes подключается по закрытому SSH-туннелю на loopback; для ручного входа в Ozon с телефона настраивается отдельный HTTPS viewer. См. README сервера.

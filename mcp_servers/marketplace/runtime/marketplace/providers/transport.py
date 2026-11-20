@@ -1,7 +1,7 @@
 """Run isolated adapters without a shell; keep resumable cart outputs private."""
 import contextlib,fcntl,hashlib,json,os,subprocess,sys,tempfile
 from pathlib import Path
-from common import read_json,write_private
+from common import read_json
 RUNTIME=Path(__file__).resolve().parents[1]
 VENDORS=RUNTIME/'vendors'
 SUCCESS={'ok','empty','success','verified','updated','unchanged','saved','imported','ready'}
@@ -46,10 +46,3 @@ def status(raw):
     if value in ('authentication_required','login_required'):return 'login_required'
     if value in ('needs_review','partial','structured_data_only'):return 'partial'
     return value
-
-
-def order_call(site,method,params):
-    with tempfile.TemporaryDirectory(prefix='market-orders-') as temp:
-        request=Path(temp)/'request.json';write_private(request,params)
-        with provider_lock(site):
-            return run_json(RUNTIME/'order_worker.py',['--provider',site,'--method',method,'--request',request])

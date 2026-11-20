@@ -1,6 +1,6 @@
 // Offline contract tests. Does not connect to or change a real cart.
 const assert = require('node:assert/strict');
-const AliBom = require('../scripts/browser.js');
+const AliBom = require('../../../mcp_servers/marketplace/runtime/marketplace/vendors/aliexpress/scripts/browser.js');
 let clicks = 0, count = 1, enabled = true, failAfterClick = false;
 const tab = {
   url: async () => 'https://aliexpress.ru/item/1000000000000.html',

@@ -8,14 +8,15 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('ozon', Path(__file__).parents[1]/'scripts/ozon.py')
+SCRIPTS = Path(__file__).resolve().parents[3] / 'mcp_servers/marketplace/runtime/marketplace/vendors/ozon/scripts'
+spec = importlib.util.spec_from_file_location('ozon', SCRIPTS / 'ozon.py')
 ozon = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ozon)
 
 
 class AccessTests(unittest.TestCase):
     def test_authenticated_probe_persists_server_cookies_without_claiming_login_on_captcha(self):
-        scripts=str(Path(__file__).parents[1]/'scripts')
+        scripts = str(SCRIPTS)
         with patch.object(sys,'path',[scripts,*sys.path]):
             import ozon_session
         def run(args, **kwargs):
