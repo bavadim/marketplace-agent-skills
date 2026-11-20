@@ -1,0 +1,36 @@
+name: Publish marketplace MCP
+on:
+  push:
+    branches: [feat/mcp-session-isolation]
+    paths: [.github/workflows/ghcr.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IMAGE: ghcr.io/bavadim/marketplace-mcp:8bdfa0c
+      COMMIT: 8bdfa0c40ce829914ef26ade2216c33d83b70c6f
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: 8bdfa0c40ce829914ef26ade2216c33d83b70c6f
+          persist-credentials: false
+      - name: Build pinned image
+        run: |
+          test "$(git rev-parse HEAD)" = "$COMMIT"
+          docker build --platform linux/amd64 -f mcp/Dockerfile -t "$IMAGE" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$COMMIT" .
+      - name: Publish to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE"
+          docker manifest inspect "$IMAGE" >/dev/null
