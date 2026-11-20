@@ -17,7 +17,7 @@ if ! mkdir "$state/lock" 2>/dev/null; then
   printf 'Another tunnel restart is running; lock: %s/lock\n' "$state" >&2; exit 1
 fi
 trap 'rmdir "$state/lock"' EXIT
-# Don't inherit forwards or other SSH masters from the user's SSH config.
+# Disable detaching even if requested by the user's SSH config.
 common=(-o ConnectTimeout=8 -o ForwardAgent=no -o ForwardX11=no -o PermitLocalCommand=no)
 if [[ -S $control ]]; then
   if ssh "${common[@]}" -S "$control" -O check "$host" 2>/dev/null; then
@@ -26,7 +26,8 @@ if [[ -S $control ]]; then
 fi
 # Do not replace an active socket owned by a different SSH session. Only
 # unlink a same-owner stale Unix socket, never a regular file/symlink.
-ssh "${common[@]}" -o ControlPath=none -o ClearAllForwardings=yes "$host" "python3 - '$socket'" <<'PY'
+ssh "${common[@]}" -T -o ForkAfterAuthentication=no -o StdinNull=no \
+  -o ControlPath=none -o ClearAllForwardings=yes "$host" "python3 - '$socket'" <<'PY'
 import errno, os, pathlib, socket, stat, sys, time
 p = pathlib.Path(sys.argv[1])
 p.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -59,14 +60,21 @@ for _ in range(15):
 else:
     sys.exit('Remote socket already has a listener. Close the previous manual SSH tunnel first.')
 PY
-ssh "${common[@]}" -M -S "$control" -fNT -o ControlPersist=no \
-  -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 \
-  -R "$socket:127.0.0.1:18000" "$host"
-if ssh "${common[@]}" -S "$control" "$host" \
-    "test \"\$(curl --noproxy '*' --unix-socket '$socket' --max-time 5 -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18000/mcp)\" = 401"; then
-  printf 'SSH tunnel ready: %s (MCP HTTP 401 without bearer)\n' "$socket"
-else
-  ssh "${common[@]}" -S "$control" -O exit "$host" || true
-  printf 'Forward started, but remote MCP did not return HTTP 401.\n' >&2
-  exit 1
-fi
+# The setup lock must not live for the duration of the SSH session. A later
+# invocation can stop this master via its control socket before rebinding.
+rmdir "$state/lock"
+trap - EXIT
+# Probe through the same SSH connection; EOF or Ctrl-C ends the foreground
+# session, and an SSH/forwarding error is returned without masking its status.
+exec ssh "${common[@]}" -M -S "$control" -T \
+  -o ForkAfterAuthentication=no -o ControlPersist=no -o StdinNull=no \
+  -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+  -R "$socket:127.0.0.1:18000" "$host" "
+    status=\$(curl --noproxy '*' --unix-socket '$socket' --max-time 5 -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18000/mcp) || exit \$?
+    if [ \"\$status\" != 401 ]; then
+      printf 'MCP over SSH returned HTTP %s; expected 401.\n' \"\$status\" >&2
+      exit 1
+    fi
+    printf 'SSH tunnel ready: %s (MCP HTTP 401 without bearer). Ctrl-C to stop.\n' '$socket'
+    exec cat >/dev/null
+  "
