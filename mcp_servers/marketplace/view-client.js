@@ -8,7 +8,7 @@ function connect() {
     rfb = new RFB(document.querySelector('#screen'), ws.href);
     rfb.scaleViewport = true;
     rfb.addEventListener('connect', () => {
-        status.textContent = 'Удалённый Chrome. Войди на странице Ozon.';
+        status.textContent = 'Удалённый Chromium. Выполни ручную проверку на странице Ozon.';
         done.disabled = keys.disabled = false;
     });
     rfb.addEventListener('disconnect', () => {

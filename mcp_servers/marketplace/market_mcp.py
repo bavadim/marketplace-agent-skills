@@ -1,5 +1,6 @@
 """Private, read-only marketplace MCP. Run the admin CLI only on the service host."""
 import argparse
+import asyncio
 from contextvars import ContextVar
 import fcntl
 import hashlib
@@ -14,11 +15,13 @@ import sqlite3
 import stat
 import subprocess
 import sys
+import tarfile
 import tempfile
 from threading import BoundedSemaphore
 import time
 from typing import Annotated, Any, Literal
 
+import anyio
 from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
@@ -35,6 +38,8 @@ ARGUMENTS = {'search': {'marketplace', 'query', 'limit'}, 'product': {'marketpla
 ADMIN = {'session.login.start', 'session.login.status', 'session.login.finish',
          'session.login.cancel', 'session.validate', 'session.forget'}
 SLOT = re.compile(r'[a-f0-9]{32}')
+SHARED_OZON_SLOT = '0' * 32
+CATALOG_CHALLENGES = {'browser_challenge', 'http_challenge', 'access_blocked'}
 BEARER = re.compile(r'mk_[A-Za-z0-9_-]{43}')
 GATEWAY_KEY = re.compile(r'[a-f0-9]{64}')
 IDENTITY = re.compile(r'(?:telegram:[1-9][0-9]{0,18}|(?:hermes:)?[a-z][a-z0-9_-]{0,63})')
@@ -122,6 +127,13 @@ class Grants:
         return self.sql('SELECT 1 FROM grants WHERE slot=? AND revoked=0 AND expires_at>?',
                         (slot, int(time.time()))) is not None
 
+    def shared_ozon_slot(self):
+        self.sql('INSERT OR IGNORE INTO grants (slot,label,digest,expires_at) VALUES (?,?,?,?)',
+                 (SHARED_OZON_SLOT, 'shared Ozon catalog', 'internal:shared-ozon', 2**63-1))
+        if not self.active(SHARED_OZON_SLOT):
+            raise RuntimeError('shared Ozon slot is inactive')
+        return SHARED_OZON_SLOT
+
     def revoke(self, slot):
         return self.sql('UPDATE grants SET revoked=1 WHERE slot=? AND revoked=0 RETURNING slot',
                         (slot,)) is not None
@@ -173,7 +185,29 @@ class Engine:
                                'MARKETPLACE_BROWSER_ROOT': 'profiles'}.items():
             env[var] = str(private_dir(base / directory))
         env.update(PYTHONNOUSERSITE='1', PYTHONDONTWRITEBYTECODE='1')
+        if slot == SHARED_OZON_SLOT:
+            env['MARKETPLACE_OZON_SHARED_GUEST'] = '1'
         return env
+
+    def export_shared_ozon(self, output):
+        env = self.environment(SHARED_OZON_SLOT)
+        state = Path(env['XDG_STATE_HOME'])
+        profiles = Path(env['MARKETPLACE_BROWSER_ROOT'])
+        fd = os.open(state / 'mcp.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(fd, 'r+b') as guard:
+            try:
+                fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise ValueError('profile is in use; finish the viewer or wait for search') from exc
+            metadata = state / 'marketplace-accounts/ozon/metadata.json'
+            if not metadata.is_file():
+                raise ValueError('no shared Ozon profile to export')
+            with tarfile.open(fileobj=output, mode='w|gz') as archive:
+                archive.add(profiles, arcname='profiles')
+                archive.add(metadata, arcname='state/marketplace-accounts/ozon/metadata.json')
+                session = state / 'ozon-bom/session.json'
+                if session.is_file():
+                    archive.add(session, arcname='state/ozon-bom/session.json')
 
     def call(self, slot, method, params, *, admin=False):
         script = ACCOUNTS if admin and method in ADMIN else self.scripts[method]
@@ -271,14 +305,72 @@ class CatalogServer(MCPServer):
         return await super().call_tool(name, arguments, context)
 
 
-def create_app(grants, engine, hosts, viewer=None, *, gateway_key=None):
+class CatalogQueue:
+    def __init__(self, interval=2):
+        self.interval = interval
+        self.lock = asyncio.Lock()
+        self.pending = 0
+        self.last_search = float('-inf')
+
+    async def run(self, operation, *, search=False):
+        if self.pending >= 16:
+            return {'ok': False, 'status': 'queue_full'}
+        self.pending += 1
+        abandoned = False
+
+        async def execute():
+            try:
+                async with self.lock:
+                    if search:
+                        delay = self.last_search + self.interval - time.monotonic()
+                        if delay > 0:
+                            await asyncio.sleep(delay)
+                    if abandoned:
+                        return {'ok': False, 'status': 'request_cancelled'}
+
+                    def work():
+                        if search:
+                            self.last_search = time.monotonic()
+                        return operation()
+
+                    return await anyio.to_thread.run_sync(work)
+            finally:
+                self.pending -= 1
+
+        task = asyncio.create_task(execute())
+        try:
+            return await asyncio.shield(task)
+        except asyncio.CancelledError:
+            # A disconnected RPC must not let a second operation overlap a live worker.
+            abandoned = True
+            task.add_done_callback(lambda done: None if done.cancelled() else done.exception())
+            raise
+
+
+def create_app(grants, engine, hosts, viewer=None, *, gateway_key=None, shared_ozon=False,
+               search_interval=2):
     server = CatalogServer('marketplace-catalog', log_level='CRITICAL')
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
+    shared_slot = grants.shared_ozon_slot() if shared_ozon else None
+    queue = CatalogQueue(search_interval)
+
+    def verification_link(identity):
+        if identity != 'default':
+            return {'ok': False, 'status': 'operator_verification_required'}
+        if not viewer or shared_slot is None:
+            return {'ok': False, 'status': 'catalog_verification_unavailable'}
+        result = viewer.authorize(shared_slot, catalog=True)
+        if 'authorization_url' in result:
+            result['status'] = 'catalog_verification_required'
+        return result
 
     def call(method, marketplace, params):
         identity = GatewayIdentity.get()
         slot = Principal.get()
-        if identity:
+        shared = shared_slot is not None and marketplace == 'ozon'
+        if shared:
+            slot = shared_slot
+        elif identity:
             slot = grants.identity_slot(identity, provision=(marketplace == 'aliexpress' and method == 'search'))
             if slot is None:
                 return {'ok': False, 'status': 'authorization_required'}
@@ -291,44 +383,52 @@ def create_app(grants, engine, hosts, viewer=None, *, gateway_key=None):
             return {'ok': False, 'status': 'marketplace_mismatch'}
         if method in ('search', 'session.status'):
             params['providers'] = [marketplace]
-        if viewer and marketplace == 'ozon' and method != 'session.status' and not viewer.checked(slot):
+        if not shared and viewer and marketplace == 'ozon' and method != 'session.status' and not viewer.checked(slot):
             if not identity:
                 return {'ok': False, 'status': 'authorization_check_required', 'next_tool': 'authorize'}
             result = viewer.verify(slot)
             if not result['ok']:
                 return result
         result = engine.call(slot, method, params)
+        if shared and method == 'search' and not result.get('ok'):
+            sources = result.get('data', {}).get('sources', [])
+            if result.get('status') in CATALOG_CHALLENGES or any(
+                    s.get('provider') == 'ozon' and s.get('status') in CATALOG_CHALLENGES for s in sources):
+                return verification_link(identity)
         if method == 'session.status':
             rows = result.get('data', {}).get('sessions', [])
             result['data'] = {'sessions': [{k: row[k] for k in ('provider', 'status', 'authenticated',
                 'metadata_only', 'last_verified_at', 'last_check_status') if k in row} for row in rows]}
         return result
 
-    @server.tool(annotations=read_only, structured_output=True)
-    def search(marketplace: Marketplace, query: Annotated[str, Field(min_length=1, max_length=256)],
-               limit: Annotated[int, Field(ge=1, le=30)] = 12) -> dict[str, Any]:
-        """Search one storefront: ozon (ozon.ru) or aliexpress (aliexpress.ru). Prices are preliminary."""
-        return call('search', marketplace, {'query': query, 'limit': limit})
+    async def queued(method, marketplace, params):
+        return await queue.run(lambda: call(method, marketplace, params), search=method == 'search')
 
     @server.tool(annotations=read_only, structured_output=True)
-    def product(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
+    async def search(marketplace: Marketplace, query: Annotated[str, Field(min_length=1, max_length=256)],
+               limit: Annotated[int, Field(ge=1, le=30)] = 12) -> dict[str, Any]:
+        """Search a storefront. Prices are preliminary. In shared Ozon mode, only the operator gets a manual catalog verification link; do not sign in."""
+        return await queued('search', marketplace, {'query': query, 'limit': limit})
+
+    @server.tool(annotations=read_only, structured_output=True)
+    async def product(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
                 variant_limit: Annotated[int, Field(ge=0, le=8)] = 0) -> dict[str, Any]:
         """Read a product or its variants on ozon or aliexpress. Use a ref from that marketplace, not a URL."""
-        return call('product', marketplace, {'ref': ref, 'variant_limit': variant_limit})
+        return await queued('product', marketplace, {'ref': ref, 'variant_limit': variant_limit})
 
     @server.tool(annotations=read_only, structured_output=True)
-    def quote(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
+    async def quote(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
               city: Annotated[str, Field(min_length=1, max_length=120)],
               quantity: Annotated[int, Field(ge=1, le=100)] = 1) -> dict[str, Any]:
         """Read price and delivery evidence on ozon or aliexpress. The ref must match the marketplace; no cart changes."""
-        return call('quote', marketplace, {'ref': ref, 'city': city, 'quantity': quantity})
+        return await queued('quote', marketplace, {'ref': ref, 'city': city, 'quantity': quantity})
 
     @server.tool(annotations=read_only, structured_output=True)
-    def session_status(marketplace: Marketplace) -> dict[str, Any]:
+    async def session_status(marketplace: Marketplace) -> dict[str, Any]:
         """Read saved connection metadata for ozon or aliexpress, not a live login check."""
-        return call('session.status', marketplace, {})
+        return await queued('session.status', marketplace, {})
 
-    if viewer:
+    if viewer and not shared_ozon:
         @server.tool(structured_output=True, annotations=ToolAnnotations.model_validate({
             'readOnlyHint': False, 'destructiveHint': True, 'openWorldHint': True}))
         def authorize(marketplace: Marketplace) -> dict[str, Any]:
@@ -336,6 +436,7 @@ def create_app(grants, engine, hosts, viewer=None, *, gateway_key=None):
             identity = GatewayIdentity.get()
             if marketplace != 'ozon':
                 return {'ok': False, 'status': 'interactive_authorization_unsupported'}
+
             slot = Principal.get()
             if identity:
                 slot = grants.identity_slot(identity, provision=True)
@@ -354,6 +455,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     subs = parser.add_subparsers(dest='action', required=True)
     subs.add_parser('serve')
+    subs.add_parser('export-ozon-guest')
     issue = subs.add_parser('issue'); issue.add_argument('label'); issue.add_argument('--days', type=int, default=30, choices=range(1, 91), metavar='1..90')
     revoke = subs.add_parser('revoke'); revoke.add_argument('slot')
     viewer_key = subs.add_parser('viewer-key'); viewer_key.add_argument('slot')
@@ -370,9 +472,15 @@ def main():
         hosts = os.environ.get('MARKET_MCP_HOSTS', '127.0.0.1:8000,localhost:8000').split(',')
         origin = os.environ.get('MARKET_MCP_VIEWER_ORIGIN')
         viewer = Viewer(grants, engine, origin, limit=int(os.environ.get('MARKET_MCP_VIEWER_LIMIT', '4'))) if origin else None
-        uvicorn.run(create_app(grants, engine, hosts, viewer, gateway_key=os.environ.get('MARKET_MCP_GATEWAY_KEY')),
+        uvicorn.run(create_app(grants, engine, hosts, viewer, gateway_key=os.environ.get('MARKET_MCP_GATEWAY_KEY'),
+                               shared_ozon=os.environ.get('MARKET_MCP_SHARED_OZON') == '1'),
                     host=os.environ.get('MARKET_MCP_BIND', '127.0.0.1'),
                     port=8000, workers=1, access_log=False, proxy_headers=False, ws_max_size=65536)
+    elif args.action == 'export-ozon-guest':
+        try:
+            engine.export_shared_ozon(sys.stdout.buffer)
+        except ValueError as exc:
+            parser.error(str(exc))
     elif args.action == 'issue':
         slot, key = grants.issue(args.label, int(time.time()) + args.days * 86400)
         print(json.dumps({'slot': slot, 'bearer': key}))

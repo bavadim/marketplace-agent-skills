@@ -36,6 +36,8 @@ class Job:
     supervisor: asyncio.Task | None = None
     socket_attached: bool = False
     ready: bool = False
+    catalog: bool = False
+    invite: str = ''
 
 
 class Viewer:
@@ -67,7 +69,7 @@ class Viewer:
             job = self.by_slot.get(slot)
             return slot in self.checking or bool(job and job.lease)
 
-    def authorize(self, slot, *, reset=False):
+    def authorize(self, slot, *, reset=False, catalog=False):
         with self.lock:
             now = time.monotonic()
             self.checked_until = {k: v for k, v in self.checked_until.items() if v > now}
@@ -83,6 +85,10 @@ class Viewer:
                 return {'ok': False, 'status': 'authorization_in_progress'}
             if len(self.jobs) >= 64:
                 return {'ok': False, 'status': 'viewer_busy'}
+            if catalog:
+                job = Job(slot, secrets.token_urlsafe(24), now + self.ttl, catalog=True)
+                self.jobs[job.ticket] = self.by_slot[slot] = job
+                return self.link(job)
             self.checking.add(slot)
         try:
             status = self.engine.call(slot, 'session.status', {'providers': ['ozon']})
@@ -142,9 +148,10 @@ class Viewer:
     def link(self, job):
         # Called with the viewer lock held, before a lease exists. A new
         # request replaces the previous unclaimed invite without extending TTL.
-        invite = self.grants.make_viewer_invite(job.slot, job.ticket)
+        if not job.catalog or not job.invite:
+            job.invite = self.grants.make_viewer_invite(job.slot, job.ticket)
         result = {'ok': False, 'status': 'authorization_required',
-                  'authorization_url': f'{self.origin}/view/{job.ticket}/#invite={invite}',
+                  'authorization_url': f'{self.origin}/view/{job.ticket}/#invite={job.invite}',
                   'expires_in': int(max(0, job.deadline - time.monotonic()))}
         if previous := self.failures.get(job.slot):
             result['previous_attempt'] = previous

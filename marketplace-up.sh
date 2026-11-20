@@ -10,7 +10,8 @@ user=${BASH_REMATCH[1]}
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 image=${MMCP_IMAGE:-ghcr.io/bavadim/marketplace-mcp:pilot}
 name=mmcp-pilot
-volume=mmcp-pilot-data
+volume=${MMCP_DATA_VOLUME:-mmcp-pilot-data}
+[[ $volume =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || { printf 'Invalid Docker volume name.\n' >&2; exit 2; }
 origin=https://$domain
 socket=${MMCP_REMOTE_SOCKET:-/home/$user/.mmcp-pilot/mcp-live.sock}
 state=$(docker container inspect --format '{{.State.Running}}' "$name" 2>/dev/null || true)
@@ -58,6 +59,7 @@ with sync_playwright() as p:
   docker run -d --restart unless-stopped --platform linux/amd64 --name "$name" --init --shm-size=512m \
     "${opts[@]}" "${gateway_args[@]}" -p 127.0.0.1:18000:8000 -e MARKET_MCP_BIND=0.0.0.0 \
     -e "MARKET_MCP_HOSTS=127.0.0.1:18000,$domain" -e "MARKET_MCP_VIEWER_ORIGIN=$origin" \
+    -e "MARKET_MCP_SHARED_OZON=${MMCP_SHARED_OZON:-1}" \
     --mount "source=$volume,target=/data" "$image" >/dev/null
   unset MARKET_MCP_GATEWAY_KEY
 fi

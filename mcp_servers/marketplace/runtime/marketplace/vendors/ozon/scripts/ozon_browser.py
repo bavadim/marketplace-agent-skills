@@ -152,6 +152,7 @@ def browse(url, session=None, capture=None, screenshot=None, executable=None, ti
               'display_mode': mode, 'driver':'patchright',
               'cookies_supplied': bool(session), 'authenticated': None if session else False,
               'cart_modified': False, 'url': safe_url(url)}
+    shared_guest = os.environ.get('MARKETPLACE_OZON_SHARED_GUEST') == '1' and not getattr(operation, 'mutates_cart', False)
     with contextlib.ExitStack() as stack:
         document, state = None, None
         if session:
@@ -162,7 +163,8 @@ def browse(url, session=None, capture=None, screenshot=None, executable=None, ti
             runtime = Path(__file__).resolve().parents[3]
             if str(runtime) not in sys.path: sys.path.insert(0, str(runtime))
             from browser_runtime import ManagedBrowser
-            with ManagedBrowser('ozon',session,use_saved_session=bool(session),executable=executable,timeout_ms=timeout_ms) as managed:
+            with ManagedBrowser('ozon',session,use_saved_session=bool(session) or shared_guest,
+                                executable=executable,timeout_ms=timeout_ms) as managed:
                 context = managed.context
                 browser = context.browser
                 try:
@@ -234,6 +236,10 @@ def browse(url, session=None, capture=None, screenshot=None, executable=None, ti
                         status, title = classify(code, html)
                         if status == 'http_challenge':
                             status = 'browser_challenge'
+                        if status == 'ok' and shared_guest:
+                            account = page.locator('[data-widget="profileLogo"] a[href="/my/main"]')
+                            if account.count() and account.first.inner_text().strip() not in ('', 'Войти', 'Личный кабинет'):
+                                return {**result, 'status': 'shared_profile_signed_in'}
                         if status == 'ok' and operation:
                             stage = 'operation'
                             if getattr(operation,'mutates_cart',False):
@@ -289,7 +295,7 @@ def browse(url, session=None, capture=None, screenshot=None, executable=None, ti
                         except Error:
                             result['error_capture_failed'] = True
                     finally:
-                        if session:
+                        if session or shared_guest:
                             managed.observe_auth(result.get('authenticated'))
                             managed.save()
                             result['session_saved'] = True

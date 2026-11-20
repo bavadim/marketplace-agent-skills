@@ -101,7 +101,8 @@ def run(directory, deadline):
             time.sleep(.12)
         else:
             return 'viewer_failed'
-        return manual_chromium(directory, deadline, server, SITES['ozon']['url'])
+        url = 'https://www.ozon.ru/' if os.environ.get('MARKETPLACE_OZON_SHARED_GUEST') == '1' else SITES['ozon']['url']
+        return manual_chromium(directory, deadline, server, url)
     finally:
         if server.poll() is None:
             server.terminate()
