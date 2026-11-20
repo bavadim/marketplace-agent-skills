@@ -1,7 +1,0 @@
-interface:
-  display_name: "Инвестируй в мечту"
-  short_description: "План накоплений и тестовый портфель"
-  default_prompt: "Используй $invest-in-dream, чтобы создать цель накопления и рассчитать срок."
-
-policy:
-  allow_implicit_invocation: true

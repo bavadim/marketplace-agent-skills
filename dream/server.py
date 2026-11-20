@@ -8,7 +8,8 @@ from mcp.server.mcpserver import Context
 from pydantic import BaseModel
 
 from dream.bank import Sandbox
-from dream.core import Dream, preview
+from dream.core import Dream
+from dream.proposals import daily_proposal, offer_savings_goal as make_offer
 
 
 class Consent(BaseModel):
@@ -34,9 +35,10 @@ def build(dream):
             return {'mode': 'sandbox', 'connected': False, 'reason': str(exc)}
 
     @server.tool(structured_output=True)
-    def plan(target_kopecks: int, initial_kopecks: int = 0, monthly_kopecks: int = 0) -> dict[str, Any]:
-        """Compute convergence under fixed illustrative scenarios; no forecast of market returns."""
-        return preview(target_kopecks, initial_kopecks, monthly_kopecks)
+    def offer_savings_goal(title: str, target_kopecks: int, initial_kopecks: int = 0,
+                           monthly_kopecks: int = 0, purchase_urls: list[str] | None = None) -> dict[str, Any]:
+        """When recommending a concrete priced purchase and the user has not chosen to buy now, use once to offer a sandbox savings goal. Also use when asked to save or estimate time. Do not call after refusal or immediate checkout. This only proposes; it opens nothing. Amounts in kopecks."""
+        return make_offer(title, target_kopecks, initial_kopecks, monthly_kopecks, purchase_urls=purchase_urls)
 
     @server.tool(structured_output=True)
     def list_goals() -> list[dict]:
@@ -49,16 +51,9 @@ def build(dream):
         return dream.status(goal_id)
 
     @server.tool(structured_output=True)
-    def daily_digest() -> list[dict]:
-        """Read all open goals; mark a bank error without inventing balances."""
-        rows = []
-        for goal in dream.list():
-            if not goal['closed']:
-                try:
-                    rows.append(dream.status(goal['id']))
-                except ValueError:
-                    rows.append({**goal, 'live_status': 'unavailable'})
-        return rows
+    def daily_proposals() -> dict[str, Any]:
+        """Generate one deterministic, read-only report for all open goals of this owner. Does not deliver or transact."""
+        return daily_proposal(dream)
 
     @server.tool(structured_output=True)
     def last_price(instrument_id: str) -> dict[str, Any]:
@@ -82,11 +77,11 @@ def build(dream):
 
     @server.tool(structured_output=True)
     async def create_goal(goal_id: str, title: str, target_kopecks: int, ctx: Context,
-                          monthly_kopecks: int = 0) -> dict[str, Any]:
+                          monthly_kopecks: int = 0, purchase_urls: list[str] | None = None) -> dict[str, Any]:
         """Open a separate virtual brokerage account for this goal after confirmation."""
         if not await approved(ctx, f'Открыть тестовый счёт для цели «{title[:80]}» ({target_kopecks} коп.)?'):
             return {'status': 'not_confirmed'}
-        return dream.create(goal_id, title, target_kopecks, monthly_kopecks)
+        return dream.create(goal_id, title, target_kopecks, monthly_kopecks, purchase_urls=purchase_urls)
 
     @server.tool(structured_output=True)
     async def fund_goal(goal_id: str, operation_id: str, amount_kopecks: int, ctx: Context) -> dict[str, Any]:
@@ -114,7 +109,7 @@ def build(dream):
     return server
 
 
-def main():
+def from_env(*, force_readonly=False):
     os.umask(0o077)
     path = Path(os.environ['DREAM_DB'])
     if not path.is_absolute():
@@ -125,9 +120,13 @@ def main():
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     token_file = os.environ.get('DREAM_TOKEN_FILE')
     token = Path(token_file).read_text().strip() if token_file else os.environ.get('TINVEST_SANDBOX_TOKEN')
-    dream = Dream(path, Sandbox(token, os.environ.get('DREAM_CA_FILE')), owner,
-                  readonly=os.environ.get('DREAM_READ_ONLY') == '1')
-    build(dream).run('stdio')
+    readonly = force_readonly or os.environ.get('DREAM_READ_ONLY') == '1'
+    return Dream(path, Sandbox(token, os.environ.get('DREAM_CA_FILE'), readonly=readonly), owner,
+                 readonly=readonly)
+
+
+def main():
+    build(from_env()).run('stdio')
 
 
 if __name__ == '__main__':

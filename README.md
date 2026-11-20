@@ -1,17 +1,16 @@
 # Marketplace Agent Skills
 
-Two independent agent skills and two MCP services. The stylist defines what to find; the catalog service finds and verifies live offers. Dream provides a sandbox investment workflow, independently of the stylist.
+One agent skill and two independent MCP services. The stylist defines what to find; the catalog service finds and verifies live offers. Dream provides a sandbox investment workflow, independently of the stylist.
 
 ## Skills
 
 - [wardrobe-stylist](skills/wardrobe-stylist/SKILL.md) — style, fit, outfits and visualizations. Uses a configured catalog by capability, not by a hardcoded server name.
-- [invest-in-dream](skills/invest-in-dream/SKILL.md) — offer a savings goal when a relevant priced purchase comes up, and guide the user through the sandbox workflow. No dependency on the stylist.
 
 ```bash
-python3 scripts/install.py --skills wardrobe-stylist invest-in-dream
+python3 scripts/install.py --skills wardrobe-stylist
 ```
 
-Use `--dest /absolute/path/to/skills` for a test install, or select only one skill. The installer does not remove previously installed skills. `--replace` backs up existing installations before replacement.
+Use `--dest /absolute/path/to/skills` for a test install, for isolation. The installer does not remove previously installed skills. `--replace` backs up existing installations before replacement.
 
 ## MCP services
 

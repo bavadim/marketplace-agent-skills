@@ -75,7 +75,9 @@ class Dream:
             args = {'accountId': record['accountId']}
             portfolio = self.bank.call('GetSandboxPortfolio', args)
             result['portfolio'] = {k: v for k, v in portfolio.items() if k != 'accountId'}
-            result['withdrawable_virtual'] = self.bank.call('GetSandboxWithdrawLimits', args).get('money', [])
+            limits = self.bank.call('GetSandboxWithdrawLimits', args)
+            result['withdrawable_virtual'] = limits.get('money')
+            result['blocked_virtual'] = [limits.get(key, []) for key in ('blocked', 'blockedGuarantee')]
         return result
 
     def mutate(self, goal, op, kind, params):
@@ -123,11 +125,14 @@ class Dream:
             db.execute('UPDATE ops SET result=? WHERE owner=? AND id=?', (json.dumps(result), self.owner, op))
         return result
 
-    def create(self, goal, title, target, monthly):
-        preview(target, 0, monthly)
-        if not 0 < len(title.strip()) <= 80:
-            raise ValueError('Название цели: 1–80 символов')
-        return self.mutate(goal, 'create:' + goal, 'open', {'title': title, 'target_kopecks': target, 'monthly_kopecks': monthly})
+    def create(self, goal, title, target, monthly, purchase_url=None, purchase_urls=None):
+        from dream.proposals import offer_savings_goal
+        offer = offer_savings_goal(title, target, monthly_kopecks=monthly, purchase_url=purchase_url,
+                                   purchase_urls=purchase_urls)
+        params = {'title': title, 'target_kopecks': target, 'monthly_kopecks': monthly}
+        if offer['purchase_urls']:
+            params['purchase_urls'] = offer['purchase_urls']
+        return self.mutate(goal, 'create:' + goal, 'open', params)
 
     def fund(self, goal, op, kopecks):
         money(kopecks)

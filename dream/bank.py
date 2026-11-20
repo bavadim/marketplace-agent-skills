@@ -15,11 +15,14 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class Sandbox:
-    def __init__(self, token, ca):
+    def __init__(self, token, ca, *, readonly=False):
         self._token = token
+        self._readonly = readonly
         self._http = build_opener(NoRedirect(), HTTPSHandler(context=ssl.create_default_context(cafile=ca)))
 
     def call(self, method, body):
+        if self._readonly and not method.startswith('Get'):
+            raise ValueError('Только чтение')
         if not self._token:
             raise ValueError('Тестовый токен не настроен на сервере')
         if method in SANDBOX:

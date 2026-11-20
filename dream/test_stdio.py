@@ -22,11 +22,14 @@ class StdioTest(unittest.IsolatedAsyncioTestCase):
                     'DREAM_READ_ONLY': readonly, 'TINVEST_SANDBOX_TOKEN': ''})
                 async with Client(params, mode='legacy', elicitation_callback=decline) as client:
                     names = {t.name for t in (await client.list_tools()).tools}
-                    self.assertIn('daily_digest', names)
+                    self.assertIn('daily_proposals', names)
+                    self.assertNotIn('plan', names)
+                    report = await client.call_tool('daily_proposals')
+                    self.assertEqual(report.structured_content['goals'], [])
                     self.assertEqual('create_goal' in names, readonly == '0')
-                    result = await client.call_tool('plan', {'target_kopecks': 50000})
+                    result = await client.call_tool('offer_savings_goal', {'title': 'Лук', 'target_kopecks': 50000})
                     self.assertFalse(result.is_error)
-                    self.assertIsNone(result.structured_content['baseline_months'])
+                    self.assertIsNone(result.structured_content['forecast']['baseline_months'])
                     if readonly == '0':
                         result = await client.call_tool('create_goal', {'goal_id': 'g', 'title': 'Лук', 'target_kopecks': 50000})
                         self.assertFalse(result.is_error)
