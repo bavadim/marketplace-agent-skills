@@ -20,7 +20,7 @@ Normal reads reuse the same owned provider profile. `session.ensure` and `sessio
 
 ## Access failures
 
-The shared runtime is native headless Chromium with Patchright for both providers. The existing group route is retained; do not repair proxy/firewall/DNS settings as part of account connection. `session_busy` means a login/operation already holds that profile. Close the handoff or wait; never remove its lock.
+The shared runtime is headless Chromium with Patchright for both providers. The local marketplace launcher inherits the process network settings and does not switch Linux groups. Do not change system proxy/firewall/DNS settings as part of account connection. If `session.validate` returns `browser_setup_required`, prepare the shared browser runtime before creating a login handoff; this status is not a failed login. `session_busy` means a login/operation already holds that profile. Close the handoff or wait; never remove its lock.
 
 The handoff is loopback-only, authenticated and expires after 30 minutes by default. Give the link only to this user; it is private and works on the machine running the scripts. For a remote executor the user needs an explicitly configured local tunnel or another supported handoff; do not publish the login server.
 

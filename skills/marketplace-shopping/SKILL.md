@@ -7,9 +7,9 @@ description: Find and compare tools, manufacturing parts and other products acro
 
 ## Interface
 
-If the configured marketplace MCP exposes `authorize`, call it before any Ozon workflow. On `authorization_required`, give only its viewer link to the current user and pause; never ask for the viewer key, Ozon password or SMS code in chat. Once they return, call `authorize` again and proceed through the MCP tools only on `success`. Do not silently switch to a different browser profile when an authorization check is required.
+If this deployment uses a remote catalog MCP, use its catalog tools instead of the local scripts. If it exposes `authorize`, call it before an Ozon workflow. On `authorization_required`, give only the private viewer link to the current user and pause. Never request credentials or the viewer key in chat; recheck authorization when the user returns. Do not silently switch profiles or fall back to a local browser.
 
-Run `python3 scripts/shop.py capabilities` or `python3 scripts/shop.py call --request REQUEST.json --output RESULT.json` from this skill directory. Use absolute request/result paths outside the skill. Stdin is supported with `--request -`.
+For explicitly local deployments, run `python3 scripts/shop.py capabilities` or `python3 scripts/shop.py call --request REQUEST.json --output RESULT.json` from this skill directory. Use absolute request/result paths outside the skill. Stdin is supported with `--request -`.
 
 All normal reads use **both marketplaces**. Pass returned `ref` values unchanged; the provider factory routes them. Do not ask the user which marketplace is active. The implementations and browser/session mechanics are bundled in `assets/marketplace/`.
 
@@ -35,6 +35,12 @@ For `requires_cart_read`, refresh `cart.list` before another write. Do not delet
 
 Show the exact part/kit, quantity, purchase-unit price, known total with delivery, delivery window, seller rating and reason for the choice. Conditional bank prices and crossed-out reference prices are separate fields. Do not call an offer the overall cheapest/fastest when required comparison data is missing. A current-price outlier requires an explanation; it does not invalidate all variants of its listing.
 
+## Demos and deployment
+
+Keep selection-only integrations read-only: return exact product links, sizes, and observed offer terms; do not expose cart, orders, payments, or browser control. If the skill must run in different agents, use a portable helper and browser-based account linking; keep credentials out of the distributed skill and model context. Never reuse another participant’s offer or treat an unverified destination or conditional payment price as personalized evidence.
+
+Keep deployment updates brief: state the result or blocker first, then what remains and the minimum input needed from the user. Run available checks yourself; report which checks used fixtures, which ran on the target host, and whether a participant actually completed login.
+
 ## References
 
-Read [api.md](references/api.md) for request/model examples, review evidence and comparison policy. Read [access.md](references/access.md) only for login, browser, network or CAPTCHA problems. Existing orders and delivery lists use the separate `marketplace-orders` skill with the same engine.
+Read [api.md](references/api.md) for request/model examples, review evidence and comparison policy. Read [access.md](references/access.md) for login, browser/network issues, and multi-user MCP deployment. Existing orders and delivery lists use the separate `marketplace-orders` skill with the same engine.

@@ -9,6 +9,7 @@ English agent skills for shopping, order tracking and personal styling. Ozon and
 | [marketplace-orders](skills/marketplace-orders/SKILL.md) | Combine orders, delivery dates, pickup addresses, deadlines and pickup-code images | `marketplace-shopping` |
 | [wardrobe-stylist](skills/wardrobe-stylist/SKILL.md) | Collect measurements, find clothes and render three coordinated outfits with shopping links | None; marketplace integration is optional |
 | [captcha-assist](skills/captcha-assist/SKILL.md) | Complete a visible verification challenge | Supported browser tool |
+| [invest-in-dream](skills/invest-in-dream/SKILL.md) | Plan a purchase goal and track a virtual portfolio | [Dream MCP](dream/README.md), official T-Invest sandbox only |
 
 ## Installation
 
