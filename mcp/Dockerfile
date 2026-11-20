@@ -12,8 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt /app/engine-requirements.txt
 COPY mcp/requirements.txt /app/mcp-requirements.txt
 RUN pip install --no-cache-dir -r /app/engine-requirements.txt -r /app/mcp-requirements.txt
-COPY skills/marketplace-shopping /app/skills/marketplace-shopping
-COPY skills/marketplace-accounts /app/skills/marketplace-accounts
+COPY mcp/runtime /app/mcp/runtime
 COPY mcp/*.py mcp/view.html mcp/view-client.js mcp/view-claim.js /app/mcp/
 COPY mcp/chromium-policy.json /etc/chromium/policies/managed/marketplace.json
 ENV HOME=/data

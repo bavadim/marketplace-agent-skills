@@ -4,6 +4,8 @@
 !/README.md
 !/LICENSE
 !/requirements.txt
+!/mcp/
+!/dream/
 !/scripts/
 !/skills/
 !/.github/
@@ -119,6 +121,12 @@ screenshots/
 *.orig
 *.tmp
 *.log
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
 
 # Editor/OS scratch files.
 .idea/

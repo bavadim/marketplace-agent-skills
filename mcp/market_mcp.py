@@ -25,9 +25,9 @@ from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from pydantic import Field
 from starlette.responses import JSONResponse
 
-REPO = Path(__file__).resolve().parents[1]
-SHOP = REPO / 'skills/marketplace-shopping/scripts/shop.py'
-ACCOUNTS = REPO / 'skills/marketplace-accounts/scripts/accounts.py'
+RUNTIME = Path(__file__).resolve().parent / 'runtime'
+SHOP = RUNTIME / 'shop.py'
+ACCOUNTS = RUNTIME / 'accounts.py'
 READ = {'search': SHOP, 'product': SHOP, 'quote': SHOP, 'session.status': ACCOUNTS}
 ARGUMENTS = {'search': {'query', 'providers', 'limit'}, 'product': {'ref', 'variant_limit'},
              'quote': {'ref', 'city', 'quantity'}, 'session_status': {'providers'}, 'authorize': set()}

@@ -10,12 +10,10 @@ from repository import ROOT
 
 
 def main():
-    engine = ROOT / "skills/marketplace-shopping/assets/marketplace"
+    engine = ROOT / "mcp/runtime/marketplace"
     suites = [
         ("repository", ROOT / "scripts/tests", ROOT / "scripts"),
-        ("shopping", ROOT / "skills/marketplace-shopping/tests", engine),
-        ("orders", ROOT / "skills/marketplace-orders/tests", engine),
-        ("accounts", ROOT / "skills/marketplace-accounts/tests", engine),
+        ("marketplace-runtime", ROOT / "mcp/runtime_tests", engine),
         ("wardrobe", ROOT / "skills/wardrobe-stylist/tests", ROOT / "skills/wardrobe-stylist/scripts"),
         ("aliexpress", engine / "vendors/aliexpress/tests", engine / "vendors/aliexpress/scripts"),
         ("ozon", engine / "vendors/ozon/tests", engine / "vendors/ozon/scripts"),
@@ -25,10 +23,9 @@ def main():
         commands.append((name, [sys.executable, "-m", "unittest", "discover", "-s", str(directory), "-p", "test_*.py"], imports))
     node = shutil.which("node")
     if not node:
-        print(json.dumps({"ok": False, "error": "Node.js is required for CAPTCHA/browser helper tests"}))
+        print(json.dumps({"ok": False, "error": "Node.js is required for the browser helper tests"}))
         return 1
     commands += [
-        ("captcha", [node, str(ROOT / "skills/captcha-assist/scripts/test_challenge.cjs")], None),
         ("ali-browser-helper", [node, str(engine / "vendors/aliexpress/tests/test_browser.cjs")], None),
     ]
     failed = []

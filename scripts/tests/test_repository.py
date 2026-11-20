@@ -198,7 +198,7 @@ class RepositoryTests(unittest.TestCase):
             self.assertNotIn(secret, errors)
 
     def test_standalone_browser_setup_uses_shared_pins_without_requirement_file(self):
-        source = ROOT / "skills/marketplace-shopping/assets/marketplace/vendors/ozon/scripts/setup_browser.py"
+        source = ROOT / "mcp/runtime/marketplace/vendors/ozon/scripts/setup_browser.py"
         manifest = {line.strip() for line in (ROOT / "requirements.txt").read_text().splitlines()
                     if line.strip() and not line.startswith("#") and not line.lower().startswith("pyyaml==")}
         with tempfile.TemporaryDirectory() as tmp:

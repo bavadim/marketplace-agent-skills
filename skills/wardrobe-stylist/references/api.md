@@ -73,12 +73,6 @@ The example illustrates shape, not a complete purchasable case. Supply three act
 
 Returns sourced `measurements`, `missing_measurements` with measuring methods, `missing_photos`, clarification `questions`, criteria and independent `search_jobs`. It does not invent style directions or queries. Fill those in the case and rerun. Measurements require positive finite values, `body`/`garment` basis, definition, source and `cm` (`weight`: `kg`). Do not put a nominal clothing size in this array.
 
-### `marketplace.call`
-
-`{"method":"marketplace.call","params":{"request":{"method":"search","params":{"query":"straight jeans L36","providers":["ozon"],"limit":12}}}}`
-
-Finds a sibling/default installed `marketplace-shopping` and delegates its native JSON API. `skill_path` can specify another installed root. Read its `SKILL.md` and API reference before use. Allowed methods: `search`, `product`, `quote`, `images`, `review`, `compare`, `capabilities`. Returns the original marketplace envelope inside `data`; inspect its `ok/status` too. Cart writes are excluded. A missing skill returns `skill_unavailable`; use web search instead. Preserve marketplace `ref` values; use `offer.import` to map product/quote fields and retain source files. Do not promote incomplete data to verified facts.
-
 ### `offer.import`
 
 `{"method":"offer.import","params":{"input":"/case/product.json","quote":"/case/quote.json","id":"jeans","category":"bottom","image_path":"/case/jeans.jpg"}}`

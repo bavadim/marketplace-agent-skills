@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-RUNTIME = Path(__file__).resolve().parents[2] / 'marketplace-shopping/assets/marketplace'
+RUNTIME = Path(__file__).resolve().parents[1] / 'runtime/marketplace'
 sys.path.insert(0, str(RUNTIME))
 import browser_runtime as runtime
 import accounts

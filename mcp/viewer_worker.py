@@ -9,7 +9,7 @@ import subprocess
 import sys
 import time
 
-ENGINE = Path(__file__).resolve().parents[1] / 'skills/marketplace-shopping/assets/marketplace'
+ENGINE = Path(__file__).resolve().parent / 'runtime/marketplace'
 sys.path.insert(0, str(ENGINE))
 from browser_runtime import ManagedBrowser, SITES
 

@@ -12,7 +12,7 @@ import time
 import unittest
 from unittest.mock import patch
 
-RUNTIME = Path(__file__).resolve().parents[2] / 'marketplace-shopping/assets/marketplace'
+RUNTIME = Path(__file__).resolve().parents[1] / 'runtime/marketplace'
 sys.path.insert(0, str(RUNTIME))
 from browser_runtime import ManagedBrowser, SITES, legacy_session, read_private
 from login_server import LoginApplication, handler

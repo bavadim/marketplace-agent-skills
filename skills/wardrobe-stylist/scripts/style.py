@@ -7,11 +7,10 @@ import json
 import math
 import os
 from pathlib import Path
-import subprocess
 import sys
 
 SKILL = Path(__file__).resolve().parent.parent
-METHODS = ["prepare", "offer.import", "fit.check", "outfits.check", "marketplace.call", "merchant.fetch", "merchant.inspect",
+METHODS = ["prepare", "offer.import", "fit.check", "outfits.check", "merchant.fetch", "merchant.inspect",
            "media.download", "render.prepare", "render.attach", "report"]
 LABELS = {
     "height": ("Рост", "Height"), "weight": ("Вес", "Weight"),
@@ -317,27 +316,6 @@ def outfits_check(params):
             "requires_visual_style_review": True}
 
 
-def marketplace_call(params):
-    request = params["request"]
-    if request.get("method") not in ("search", "product", "quote", "images", "review", "compare", "capabilities"):
-        raise ValueError("This styling adapter only allows marketplace read/review operations")
-    candidates = []
-    if params.get("skill_path"):
-        candidates.append(Path(params["skill_path"]))
-    candidates.extend([SKILL.parent / "marketplace-shopping",
-                       Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex"))) / "skills" / "marketplace-shopping"])
-    script = next((p / "scripts/shop.py" for p in candidates if (p / "scripts/shop.py").is_file()), None)
-    if not script:
-        return {"status": "skill_unavailable", "skill": "marketplace-shopping", "fallback": "web_search"}
-    command = ([sys.executable, str(script), "capabilities"] if request.get("method") == "capabilities"
-               else [sys.executable, str(script), "call", "--request", "-"])
-    result = subprocess.run(command, input=json.dumps(request), text=True, capture_output=True, timeout=params.get("timeout_seconds", 300))
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Marketplace returned no JSON; process exit {result.returncode}") from e
-
-
 def dispatch(method, params):
     if method == "prepare": return prepare(params)
     if method == "offer.import":
@@ -345,7 +323,6 @@ def dispatch(method, params):
         return import_offer(params)
     if method == "fit.check": return fit_check(params)
     if method == "outfits.check": return outfits_check(params)
-    if method == "marketplace.call": return marketplace_call(params)
     if method in ("merchant.fetch", "merchant.inspect", "media.download"):
         from web import fetch, inspect_merchant, download
         return {"merchant.fetch": fetch, "merchant.inspect": inspect_merchant, "media.download": download}[method](params)

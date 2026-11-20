@@ -7,11 +7,8 @@
 !mcp/view-claim.js
 !mcp/chromium-policy.json
 !mcp/requirements.txt
-!skills/
-!skills/marketplace-shopping/
-!skills/marketplace-shopping/**
-!skills/marketplace-accounts/
-!skills/marketplace-accounts/**
+!mcp/runtime/
+!mcp/runtime/**
 **/__pycache__/
 **/.runtime/
 **/.secrets/

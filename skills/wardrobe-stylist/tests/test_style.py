@@ -117,11 +117,6 @@ class Outfits(unittest.TestCase):
         case = sample_case(); case["request"]["budget"]["scope"] = "capsule"
         self.assertIn("goods_over_budget", {e["code"] for e in style.outfits_check({"case": case})["errors"]})
 
-    def test_cart_cannot_be_called(self):
-        with self.assertRaises(ValueError):
-            style.marketplace_call({"request": {"method": "cart.apply", "params": {}}})
-
-
 class Media(unittest.TestCase):
     def test_render_requests_identity_and_maximum_references(self):
         from PIL import Image

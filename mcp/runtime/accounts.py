@@ -3,9 +3,9 @@
 from pathlib import Path
 import sys
 
-runtime = Path(__file__).resolve().parents[2] / 'marketplace-shopping/assets/marketplace'
+runtime = Path(__file__).resolve().parent / 'marketplace'
 if not (runtime / 'cli.py').is_file():
-    raise SystemExit('Install marketplace-shopping alongside marketplace-accounts.')
+    raise SystemExit('Marketplace MCP runtime is missing.')
 sys.path.insert(0, str(runtime))
 from cli import main
 

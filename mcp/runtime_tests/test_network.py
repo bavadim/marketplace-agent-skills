@@ -9,15 +9,14 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[3]
-ENGINE = ROOT / "skills/marketplace-shopping/assets/marketplace"
+ROOT = Path(__file__).resolve().parents[2]
+ENGINE = ROOT / "mcp/runtime/marketplace"
 sys.path.insert(0, str(ENGINE))
 from providers import transport
 
 SHIMS = [ENGINE / "python.sh", ROOT / "skills/wardrobe-stylist/scripts/python.sh"]
-ENTRYPOINTS = [ROOT / f"skills/{skill}/scripts/{script}.py" for skill, script in (
-    ("marketplace-shopping", "shop"), ("marketplace-accounts", "accounts"),
-    ("marketplace-orders", "orders"), ("wardrobe-stylist", "style"))]
+ENTRYPOINTS = [ROOT / "mcp/runtime/shop.py", ROOT / "mcp/runtime/accounts.py",
+               ROOT / "skills/wardrobe-stylist/scripts/style.py"]
 PAYLOAD = """import json,os,sys
 print(json.dumps({'argv':sys.argv[1:],'stdin':sys.stdin.read(),'gid':os.getegid(),
                   'launched':os.environ.get('_SKILL_PYTHON_LAUNCH_PID') == str(os.getpid())}))
@@ -175,13 +174,12 @@ exec /bin/sh -c "$3"
                     self.assertIsInstance(json.loads(result.stdout), dict)
                     self.assertEqual(self.calls(), ["called"] if enabled else [])
 
-    def test_nested_marketplace_call_does_not_repeat_sg(self):
+    def test_stylist_rejects_removed_local_marketplace_adapter(self):
         request = {"method": "marketplace.call", "params": {"request": {"method": "capabilities"}}}
         result = subprocess.run([sys.executable, str(ENTRYPOINTS[-1]), "call", "--request", "-"],
                                 input=json.dumps(request), env=dict(self.env, ISPROXYGO="1"),
                                 text=True, capture_output=True, timeout=15)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue(json.loads(result.stdout)["ok"])
+        self.assertFalse(json.loads(result.stdout)["ok"])
         self.assertEqual(self.calls(), ["called"])
 
     def test_provider_clis_inherit_routing_without_legacy_parameters(self):
