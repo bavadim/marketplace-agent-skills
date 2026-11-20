@@ -29,14 +29,16 @@ RUNTIME = Path(__file__).resolve().parent / 'runtime'
 SHOP = RUNTIME / 'shop.py'
 ACCOUNTS = RUNTIME / 'accounts.py'
 READ = {'search': SHOP, 'product': SHOP, 'quote': SHOP, 'session.status': ACCOUNTS}
-ARGUMENTS = {'search': {'query', 'providers', 'limit'}, 'product': {'ref', 'variant_limit'},
-             'quote': {'ref', 'city', 'quantity'}, 'session_status': {'providers'}, 'authorize': set()}
+ARGUMENTS = {'search': {'marketplace', 'query', 'limit'}, 'product': {'marketplace', 'ref', 'variant_limit'},
+             'quote': {'marketplace', 'ref', 'city', 'quantity'}, 'session_status': {'marketplace'},
+             'authorize': {'marketplace'}}
 ADMIN = {'session.login.start', 'session.login.status', 'session.login.finish',
          'session.login.cancel', 'session.validate', 'session.forget'}
 SLOT = re.compile(r'[a-f0-9]{32}')
 BEARER = re.compile(r'mk_[A-Za-z0-9_-]{43}')
 REF = r'^(ozon:[0-9]{1,30}|aliexpress:[0-9]{1,30}(:[0-9]{1,30})?)$'
-Provider = Literal['ozon', 'aliexpress']
+Marketplace = Annotated[Literal['ozon', 'aliexpress'],
+                        Field(description='Select exactly one marketplace: ozon (ozon.ru) or aliexpress (aliexpress.ru).')]
 Principal = ContextVar('marketplace_principal', default=None)
 
 
@@ -234,16 +236,18 @@ def create_app(grants, engine, hosts, viewer=None):
     server = CatalogServer('marketplace-catalog', log_level='CRITICAL')
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
 
-    def call(method, params):
+    def call(method, marketplace, params):
         slot = Principal.get()
         if not slot or not grants.active(slot):
             raise PermissionError('access required')
         if viewer and method != 'session.status' and viewer.busy(slot):
             return {'ok': False, 'status': 'authorization_in_progress'}
         params = {name: value for name, value in params.items() if value is not None}
-        ozon = ((method == 'search' and 'ozon' in params.get('providers', ('ozon', 'aliexpress')))
-                or (method in ('product', 'quote') and params['ref'].startswith('ozon:')))
-        if viewer and ozon and not viewer.checked(slot):
+        if method in ('product', 'quote') and params['ref'].partition(':')[0] != marketplace:
+            return {'ok': False, 'status': 'marketplace_mismatch'}
+        if method in ('search', 'session.status'):
+            params['providers'] = [marketplace]
+        if viewer and marketplace == 'ozon' and method != 'session.status' and not viewer.checked(slot):
             return {'ok': False, 'status': 'authorization_check_required', 'next_tool': 'authorize'}
         result = engine.call(slot, method, params)
         if method == 'session.status':
@@ -253,37 +257,38 @@ def create_app(grants, engine, hosts, viewer=None):
         return result
 
     @server.tool(annotations=read_only, structured_output=True)
-    def search(query: Annotated[str, Field(min_length=1, max_length=256)],
-               providers: Annotated[list[Provider], Field(min_length=1, max_length=2)] | None = None,
+    def search(marketplace: Marketplace, query: Annotated[str, Field(min_length=1, max_length=256)],
                limit: Annotated[int, Field(ge=1, le=30)] = 12) -> dict[str, Any]:
-        """Search the catalog. Prices are preliminary; check each provider's status."""
-        return call('search', {'query': query, 'providers': providers, 'limit': limit})
+        """Search one storefront: ozon (ozon.ru) or aliexpress (aliexpress.ru). Prices are preliminary."""
+        return call('search', marketplace, {'query': query, 'limit': limit})
 
     @server.tool(annotations=read_only, structured_output=True)
-    def product(ref: Annotated[str, Field(pattern=REF)],
+    def product(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
                 variant_limit: Annotated[int, Field(ge=0, le=8)] = 0) -> dict[str, Any]:
-        """Read a product or its variants. Use a marketplace ref from search, not a URL."""
-        return call('product', {'ref': ref, 'variant_limit': variant_limit})
+        """Read a product or its variants on ozon or aliexpress. Use a ref from that marketplace, not a URL."""
+        return call('product', marketplace, {'ref': ref, 'variant_limit': variant_limit})
 
     @server.tool(annotations=read_only, structured_output=True)
-    def quote(ref: Annotated[str, Field(pattern=REF)],
+    def quote(marketplace: Marketplace, ref: Annotated[str, Field(pattern=REF)],
               city: Annotated[str, Field(min_length=1, max_length=120)],
               quantity: Annotated[int, Field(ge=1, le=100)] = 1) -> dict[str, Any]:
-        """Read available price and delivery evidence without modifying a cart."""
-        return call('quote', {'ref': ref, 'city': city, 'quantity': quantity})
+        """Read price and delivery evidence on ozon or aliexpress. The ref must match the marketplace; no cart changes."""
+        return call('quote', marketplace, {'ref': ref, 'city': city, 'quantity': quantity})
 
     @server.tool(annotations=read_only, structured_output=True)
-    def session_status(providers: Annotated[list[Provider], Field(min_length=1, max_length=2)] | None = None) -> dict[str, Any]:
-        """Read saved connection metadata for this credential only; not a live login check."""
-        return call('session.status', {'providers': providers})
+    def session_status(marketplace: Marketplace) -> dict[str, Any]:
+        """Read saved connection metadata for ozon or aliexpress, not a live login check."""
+        return call('session.status', marketplace, {})
 
     if viewer:
         @server.tool(structured_output=True)
-        def authorize() -> dict[str, Any]:
-            """Check Ozon access first. If the user must act, return a private viewer link."""
+        def authorize(marketplace: Marketplace) -> dict[str, Any]:
+            """Check ozon access and return a private viewer link if needed. Interactive login for aliexpress is not supported here."""
             slot = Principal.get()
             if not slot or not grants.active(slot):
                 raise PermissionError('access required')
+            if marketplace != 'ozon':
+                return {'ok': False, 'status': 'interactive_authorization_unsupported'}
             return viewer.authorize(slot)
 
     app = server.streamable_http_app(stateless_http=True, json_response=True, max_request_body_size=32_768,

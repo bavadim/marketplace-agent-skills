@@ -62,11 +62,34 @@ print(json.dumps({'schema_version': 2, 'method': req['method'], 'ok': True,
         response = self.rpc(self.a_key, 'tools/call', {'name': 'product', 'arguments': {'ref': 'https://example.com'}}).json()
         self.assertTrue('error' in response or response['result'].get('isError'), response)
 
+    def test_marketplace_is_required_and_routes_to_one_provider(self):
+        tools = self.rpc(self.a_key, 'tools/list').json()['result']['tools']
+        for tool in tools:
+            schema = tool['inputSchema']
+            self.assertIn('marketplace', schema['required'])
+            self.assertEqual(set(schema['properties']['marketplace']['enum']), {'ozon', 'aliexpress'})
+            self.assertIn('aliexpress.ru', schema['properties']['marketplace']['description'])
+        with patch.object(self.engine, 'call', return_value={'ok': True}) as worker:
+            for marketplace in ('ozon', 'aliexpress'):
+                result = self.search(self.a_key, marketplace=marketplace).json()
+                self.assertTrue(result['result']['structuredContent']['ok'])
+                worker.assert_called_with(self.a, 'search', {'query': 'drill', 'providers': [marketplace], 'limit': 12})
+            worker.reset_mock()
+            for arguments in ({'query': 'drill'}, {'query': 'drill', 'marketplace': 'both'},
+                              {'query': 'drill', 'marketplace': ['ozon', 'aliexpress']}):
+                result = self.rpc(self.a_key, 'tools/call', {'name': 'search', 'arguments': arguments}).json()
+                self.assertTrue('error' in result or result['result'].get('isError'), result)
+            for name, arguments in (('product', {}), ('quote', {'city': 'Kazan'})):
+                result = self.rpc(self.a_key, 'tools/call', {'name': name, 'arguments': {
+                    'marketplace': 'ozon', 'ref': 'aliexpress:123:456', **arguments}}).json()
+                self.assertEqual(result['result']['structuredContent']['status'], 'marketplace_mismatch')
+            worker.assert_not_called()
+
     def test_concurrent_tool_calls_use_the_right_browser_state(self):
         jobs = [(self.a_key, 'alice'), (self.b_key, 'bob')]
         with concurrent.futures.ThreadPoolExecutor(2) as pool:
             for _ in range(5):
-                results = list(pool.map(lambda job: self.search(job[0]).json(), jobs))
+                results = list(pool.map(lambda job: self.search(job[0], marketplace='ozon').json(), jobs))
                 for response, (_, expected) in zip(results, jobs):
                     data = response['result']['structuredContent']['data']
                     self.assertEqual(data['products'][0]['title'], expected)

@@ -1,0 +1,36 @@
+name: Publish Marketplace MCP
+on:
+  push:
+    branches: [feat/invest-in-dream]
+    paths: [.github/workflows/publish-marketplace.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build and smoke-test
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/marketplace-mcp:${GITHUB_SHA:0:12}"
+          docker build --platform linux/amd64 -f mcp_servers/marketplace/Dockerfile -t "$image" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" .
+          docker run --rm --network none --entrypoint python "$image" /app/mcp/runtime/shop.py capabilities >/dev/null
+          printf 'IMAGE=%s\n' "$image" >> "$GITHUB_ENV"
+      - name: Publish to GHCR
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$IMAGE"
+          docker manifest inspect "$IMAGE" >/dev/null

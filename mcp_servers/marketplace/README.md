@@ -2,6 +2,8 @@
 
 Закрытый Streamable HTTP `/mcp`. Инструменты: `search`, `product`, `quote`, `session_status`; `authorize` доступен при включённом noVNC. MCP не предоставляет корзину, заказы, оплату или произвольное управление браузером. JS/HTML обслуживают отдельный вход через noVNC; `chromium-policy.json` задаёт политики браузера. Выдача поиска предварительная: точный вариант, цену и доставку проверяйте отдельно.
 
+Каждый инструмент требует `marketplace`: **`ozon`** (`ozon.ru`) или **`aliexpress`** (`aliexpress.ru`). Например, вызов `search` с `{"marketplace":"aliexpress","query":"куртка"}` ищет только на AliExpress. Не передавайте прежний массив `providers`: это изменение контракта. В `product` и `quote` используйте `ref` из того же маркетплейса; несовпадение даёт `marketplace_mismatch`. `authorize` открывает интерактивный вход только для Ozon; для AliExpress возвращает `interactive_authorization_unsupported`.
+
 ## Запуск
 
 Из корня проекта на Linux-хосте с доступом к витринам:

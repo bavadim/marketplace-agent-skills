@@ -88,7 +88,7 @@ class ViewerTest(unittest.TestCase):
                     headers = {'Authorization': f'Bearer {bearer}', 'Accept': 'application/json, text/event-stream',
                                'MCP-Protocol-Version': '2025-11-25'}
                     req = {'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call',
-                           'params': {'name': 'authorize', 'arguments': {}}}
+                           'params': {'name': 'authorize', 'arguments': {'marketplace': 'ozon'}}}
                     return client.post('/mcp', json=req, headers=headers).json()['result']['structuredContent']
                 a = urlsplit(authorize(a_bearer)['authorization_url']).path
                 b = urlsplit(authorize(b_bearer)['authorization_url']).path
