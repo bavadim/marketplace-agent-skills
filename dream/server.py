@@ -5,9 +5,11 @@ from pathlib import Path
 
 from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from dream.bank import Sandbox
+from dream.credentials import TokenFile
+
+from dream.bank import CredentialRequired, Sandbox
 from dream.core import Dream
 from dream.proposals import daily_proposal, offer_savings_goal as make_offer
 
@@ -16,7 +18,11 @@ class Consent(BaseModel):
     confirm: bool
 
 
-def build(dream):
+class SandboxTokenInput(BaseModel):
+    token: str = Field(min_length=1, max_length=4096, title="Sandbox-токен Т-Инвестиций", repr=False)
+
+
+def build(dream, *, token_store=None, bank_factory=None):
     server = MCPServer('dream', instructions='Official T-Invest sandbox only. Money amounts are integer kopecks.')
 
     async def approved(ctx, text):
@@ -31,18 +37,21 @@ def build(dream):
         """Check the server-side sandbox credential; never request a token in chat."""
         try:
             return dream.connection()
-        except ValueError as exc:
-            return {'mode': 'sandbox', 'connected': False, 'reason': str(exc)}
+        except CredentialRequired:
+            return {'mode': 'sandbox', 'connected': False, 'status': 'credential_required',
+                    'next_action': 'begin_connection'}
+        except (OSError, ValueError):
+            return {'mode': 'sandbox', 'connected': False, 'status': 'connection_unavailable'}
 
     @server.tool(structured_output=True)
     def offer_savings_goal(title: str, target_kopecks: int, initial_kopecks: int = 0,
                            monthly_kopecks: int = 0, purchase_urls: list[str] | None = None) -> dict[str, Any]:
-        """When recommending a concrete priced purchase and the user has not chosen to buy now, use once to offer a sandbox savings goal. Also use when asked to save or estimate time. Do not call after refusal or immediate checkout. This only proposes; it opens nothing. Amounts in kopecks."""
+        """Offer a sandbox goal after a concrete priced purchase recommendation or on a savings request. Do not call after refusal or immediate checkout. Ask about starting money and future contributions. If the user wants to proceed, call begin_connection (prompts via form only if needed), then create_goal with the same goal details. This tool opens nothing. Amounts in kopecks."""
         return make_offer(title, target_kopecks, initial_kopecks, monthly_kopecks, purchase_urls=purchase_urls)
 
     @server.tool(structured_output=True)
     def list_goals() -> list[dict]:
-        """List only this profile's goals."""
+        """List only this profile's goals, independent of scheduling. Use for 'show my savings goals' or to restore missed daily recommendations without opening another account. Do not infer schedule state from this list."""
         return dream.list()
 
     @server.tool(structured_output=True)
@@ -70,10 +79,30 @@ def build(dream):
 
     @server.tool(structured_output=True)
     async def begin_connection(ctx: Context) -> dict[str, Any]:
-        """Confirm sandbox access via a non-secret form; no real token entry."""
-        if not await approved(ctx, 'Подключить тестовый портфель?'):
+        """If sandbox access is missing or expired, collect a sandbox token via the MCP form. Never ask for it in chat or tool arguments. If already connected, do not show a form."""
+        status = connection_status()
+        if status.get('status') != 'credential_required':
+            return status
+        if token_store is None or bank_factory is None:
+            return {**status, 'status': 'token_store_not_configured'}
+        try:
+            result = await ctx.elicit('Введи только тестовый токен Т-Инвестиций (Sandbox). '
+                                      'Не вводи боевой токен. Ответ видит MCP-клиент.', SandboxTokenInput)
+        except Exception:
+            return {'status': 'form_unavailable'}
+        if result.action != 'accept':
             return {'status': 'not_confirmed'}
-        return connection_status()
+        token = result.data.token
+        if not token.isascii() or not all(c.isalnum() or c in '._~+/-=' for c in token):
+            return {'status': 'invalid_token_format'}
+        try:
+            dream.check_replacement(bank_factory(token))
+            token_store.write(token)
+        except CredentialRequired:
+            return {'status': 'token_rejected'}
+        except (OSError, ValueError):
+            return {'status': 'token_not_saved', 'message': 'Проверь доступ к счетам и хранилище профиля.'}
+        return {'mode': 'sandbox', 'connected': True, 'status': 'connected'}
 
     @server.tool(structured_output=True)
     async def create_goal(goal_id: str, title: str, target_kopecks: int, ctx: Context,
@@ -85,7 +114,7 @@ def build(dream):
 
     @server.tool(structured_output=True)
     async def fund_goal(goal_id: str, operation_id: str, amount_kopecks: int, ctx: Context) -> dict[str, Any]:
-        """Credit virtual rubles after confirmation; reuse operation_id after interruption."""
+        """Credit virtual rubles after confirmation and verify by readback. Reuse operation_id after interruption. After funding_verified, offer a daily private digest; only on separate consent use the host scheduler to create or update one daily job calling read-only daily_proposals. Never claim a schedule exists before the scheduler confirms it."""
         if not await approved(ctx, f'Пополнить цель {goal_id[:128]} виртуальными деньгами: {amount_kopecks} коп.?'):
             return {'status': 'not_confirmed'}
         return dream.fund(goal_id, operation_id, amount_kopecks)
@@ -119,14 +148,16 @@ def from_env(*, force_readonly=False):
         raise ValueError('DREAM_OWNER required')
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     token_file = os.environ.get('DREAM_TOKEN_FILE')
-    token = Path(token_file).read_text().strip() if token_file else os.environ.get('TINVEST_SANDBOX_TOKEN')
+    token = TokenFile(token_file).read if token_file else os.environ.get('TINVEST_SANDBOX_TOKEN')
     readonly = force_readonly or os.environ.get('DREAM_READ_ONLY') == '1'
     return Dream(path, Sandbox(token, os.environ.get('DREAM_CA_FILE'), readonly=readonly), owner,
                  readonly=readonly)
 
 
 def main():
-    build(from_env()).run('stdio')
+    token_file = os.environ.get('DREAM_TOKEN_FILE')
+    build(from_env(), token_store=TokenFile(token_file) if token_file else None,
+          bank_factory=lambda token: Sandbox(token, os.environ.get('DREAM_CA_FILE'), readonly=True)).run('stdio')
 
 
 if __name__ == '__main__':

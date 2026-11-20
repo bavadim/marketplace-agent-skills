@@ -49,8 +49,34 @@ class Dream:
             db.close()
 
     def connection(self):
-        self.bank.call('GetSandboxAccounts', {})
+        self.accounts()
         return {'mode': 'sandbox', 'connected': True}
+
+    def accounts(self, bank=None):
+        response = (self.bank if bank is None else bank).call('GetSandboxAccounts', {})
+        accounts = response.get('accounts', [])
+        if not isinstance(accounts, list) or any(not isinstance(a, dict) for a in accounts):
+            raise ValueError('Некорректный список счетов песочницы')
+        return {a['id'] for a in accounts if a.get('status') == 'ACCOUNT_STATUS_OPEN'
+                and isinstance(a.get('id'), str) and a['id']}
+
+    def check_replacement(self, bank):
+        accounts = self.accounts(bank)
+        with self.db() as db:
+            goals = [json.loads(row[0]) for row in db.execute(
+                'SELECT payload FROM goals WHERE owner=?', (self.owner,))]
+        if any(g['accountId'] not in accounts for g in goals if not g['closed']):
+            raise ValueError('Новый токен не видит открытые счета этого профиля')
+
+    def cash(self, args):
+        from dream.proposals import rub_kopecks
+        items = self.bank.call('GetSandboxPositions', args).get('money', [])
+        if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
+            raise ValueError('Не удалось сверить рублёвый баланс')
+        rubles = [rub_kopecks(item) for item in items if item.get('currency') == 'rub']
+        if len(rubles) > 1 or any(item is None for item in rubles):
+            raise ValueError('Не удалось сверить рублёвый баланс')
+        return sum(item for item in rubles if item is not None)
 
     def list(self):
         with self.db() as db:
@@ -105,14 +131,23 @@ class Dream:
                     raise ValueError('Цель закрыта')
             db.execute('INSERT INTO ops VALUES(?,?,?,?,NULL)', (self.owner, op, goal, intent))
         if kind == 'open':
-            record['accountId'] = self.bank.call('OpenSandboxAccount', {'name': record['title']})['accountId']
+            record['accountId'] = self.bank.call('OpenSandboxAccount', {'name': record['title']}).get('accountId')
+            if record['accountId'] not in self.accounts():
+                raise ValueError('Открытие ещё не подтверждено; повторно счёт не открываем')
+            record['account_verified'] = True
             result = self.public(record)
         else:
             args = {'accountId': record['accountId']}
             if kind == 'fund':
+                before = self.cash(args)
                 response = self.bank.call('SandboxPayIn', {**args, 'amount': money(params['kopecks'])})
+                after = self.cash(args)
+                from dream.proposals import rub_kopecks
+                if after - before != params['kopecks'] or rub_kopecks(response.get('balance')) != after:
+                    raise ValueError('Взнос ещё не подтверждён; повторно не начисляем')
                 record['contributed_kopecks'] += params['kopecks']
-                result = {'status': 'accepted', 'balance': response.get('balance')}
+                result = {'status': 'funding_verified', 'balance': response.get('balance'),
+                          'goal_id': goal, 'next_action': 'offer_daily_monitoring'}
             elif kind == 'order':
                 response = self.bank.call('PostSandboxOrder', {**args, **params, 'orderId': str(uuid4())})
                 result = {k: v for k, v in response.items() if k != 'accountId'}
