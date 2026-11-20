@@ -1,6 +1,0 @@
-interface:
-  display_name: "Daily Savings Analysis"
-  short_description: "Review savings progress and next steps"
-  default_prompt: "Use $dream-daily-analysis to help: Review my open savings goals."
-policy:
-  allow_implicit_invocation: true

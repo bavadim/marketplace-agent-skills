@@ -1,6 +1,0 @@
-interface:
-  display_name: "Invest in Your Dream"
-  short_description: "Set up a savings goal and sandbox account"
-  default_prompt: "Use $invest-in-dream to help: Help me save for a purchase."
-policy:
-  allow_implicit_invocation: true
