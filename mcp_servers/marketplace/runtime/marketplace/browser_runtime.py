@@ -280,7 +280,7 @@ class ManagedBrowser:
                 opts['env'].update({key: os.environ[key] for key in ('DISPLAY', 'XAUTHORITY')})
                 opts.update(headless=False, no_viewport=True)
                 opts.pop('viewport')
-                opts.pop('ignore_default_args', None)
+                # Keep the shared default that suppresses Chromium's automation infobar.
                 opts['args'] = ['--no-proxy-server', '--ozone-platform=x11', '--disable-gpu', '--window-position=0,0', '--window-size=880,920']
             self._context = self.driver.chromium.launch_persistent_context(str(profile), **opts)
             self.group_check = verify_groups(self._context.browser)
