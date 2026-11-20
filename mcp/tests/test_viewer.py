@@ -94,6 +94,7 @@ class ViewerTest(unittest.TestCase):
                 b = urlsplit(authorize(b_bearer)['authorization_url']).path
                 self.assertNotEqual(a, b)
                 self.assertEqual(client.get(a).headers['referrer-policy'], 'strict-origin')
+                self.assertNotIn('img-src data:', client.get(a).headers['content-security-policy'])
                 self.assertFalse(viewer.checked(alice))
                 self.assertEqual(urlsplit(authorize(a_bearer)['authorization_url']).path, a)
                 headers = {'Origin': origin}
@@ -109,6 +110,7 @@ class ViewerTest(unittest.TestCase):
                     else:
                         self.fail('viewer did not start')
                 ws_origin = 'wss://demo.example'
+                self.assertIn('img-src data:', client.get(a+'screen').headers['content-security-policy'])
                 with client.websocket_connect(ws_origin+a+'ws', headers=headers) as aws, client.websocket_connect(ws_origin+b+'ws', headers=headers) as bws:
                     self.assertEqual(aws.receive_bytes(), alice.encode())
                     self.assertEqual(bws.receive_bytes(), bob.encode())
