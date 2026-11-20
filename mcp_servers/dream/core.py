@@ -69,7 +69,7 @@ class Dream:
             raise ValueError('Новый токен не видит открытые счета этого профиля')
 
     def cash(self, args):
-        from dream.proposals import rub_kopecks
+        from mcp_servers.dream.proposals import rub_kopecks
         items = self.bank.call('GetSandboxPositions', args).get('money', [])
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise ValueError('Не удалось сверить рублёвый баланс')
@@ -142,7 +142,7 @@ class Dream:
                 before = self.cash(args)
                 response = self.bank.call('SandboxPayIn', {**args, 'amount': money(params['kopecks'])})
                 after = self.cash(args)
-                from dream.proposals import rub_kopecks
+                from mcp_servers.dream.proposals import rub_kopecks
                 if after - before != params['kopecks'] or rub_kopecks(response.get('balance')) != after:
                     raise ValueError('Взнос ещё не подтверждён; повторно не начисляем')
                 record['contributed_kopecks'] += params['kopecks']
@@ -161,7 +161,7 @@ class Dream:
         return result
 
     def create(self, goal, title, target, monthly, purchase_url=None, purchase_urls=None):
-        from dream.proposals import offer_savings_goal
+        from mcp_servers.dream.proposals import offer_savings_goal
         offer = offer_savings_goal(title, target, monthly_kopecks=monthly, purchase_url=purchase_url,
                                    purchase_urls=purchase_urls)
         params = {'title': title, 'target_kopecks': target, 'monthly_kopecks': monthly}

@@ -10,11 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && install -d -m 0700 -o 10001 -g 10001 /data \
     && install -d -m 1777 /tmp/.X11-unix
 COPY requirements.txt /app/engine-requirements.txt
-COPY mcp/requirements.txt /app/mcp-requirements.txt
+COPY mcp_servers/marketplace/requirements.txt /app/mcp-requirements.txt
 RUN pip install --no-cache-dir -r /app/engine-requirements.txt -r /app/mcp-requirements.txt
-COPY mcp/runtime /app/mcp/runtime
-COPY mcp/*.py mcp/view.html mcp/view-client.js mcp/view-claim.js /app/mcp/
-COPY mcp/chromium-policy.json /etc/chromium/policies/managed/marketplace.json
+COPY mcp_servers/marketplace/runtime /app/mcp/runtime
+COPY mcp_servers/marketplace/*.py mcp_servers/marketplace/view.html mcp_servers/marketplace/view-client.js mcp_servers/marketplace/view-claim.js /app/mcp/
+COPY mcp_servers/marketplace/chromium-policy.json /etc/chromium/policies/managed/marketplace.json
 ENV HOME=/data
 USER 10001:10001
 ENTRYPOINT ["python", "/app/mcp/market_mcp.py"]

@@ -9,13 +9,13 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[2]
-ENGINE = ROOT / "mcp/runtime/marketplace"
+ROOT = Path(__file__).resolve().parents[3]
+ENGINE = ROOT / "mcp_servers/marketplace/runtime/marketplace"
 sys.path.insert(0, str(ENGINE))
 from providers import transport
 
 SHIMS = [ENGINE / "python.sh", ROOT / "skills/wardrobe-stylist/scripts/python.sh"]
-ENTRYPOINTS = [ROOT / "mcp/runtime/shop.py", ROOT / "mcp/runtime/accounts.py",
+ENTRYPOINTS = [ROOT / "mcp_servers/marketplace/runtime/shop.py", ROOT / "mcp_servers/marketplace/runtime/accounts.py",
                ROOT / "skills/wardrobe-stylist/scripts/style.py"]
 PAYLOAD = """import json,os,sys
 print(json.dumps({'argv':sys.argv[1:],'stdin':sys.stdin.read(),'gid':os.getegid(),

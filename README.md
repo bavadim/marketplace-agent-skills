@@ -1,30 +1,37 @@
-# Marketplace Agent Skills
+# Marketplace Agent Skills — «Инвестируй в мечту»
 
-One agent skill and two independent MCP services. The stylist defines what to find; the catalog service finds and verifies live offers. Dream provides a sandbox investment workflow, independently of the stylist.
+Агент подбирает образ по запросу, проверяет реальные предложения маркетплейсов и может предложить накопить на покупку. Стилист и оба MCP-сервера независимы: их связывает агент, а не вызовы из одного компонента в другой.
 
-## Skills
+| Тип | Компонент | Где работает и за что отвечает |
+| --- | --- | --- |
+| Скилл | [`wardrobe-stylist`](skills/wardrobe-stylist/SKILL.md) | В агенте: критерии поиска, подбор образов, размеры, визуализация и итоговая стоимость. |
+| MCP-сервер | [Marketplace](mcp_servers/marketplace/README.md) | На удалённой Linux-машине с доступом к маркетплейсам: Chromium, профили, поиск, точные варианты, цены и доставка. Streamable HTTP через туннель. |
+| MCP-сервер | [Dream](mcp_servers/dream/README.md) | На стороне агента, через stdio: цели, тестовые счета, виртуальные взносы, заявки и ежедневные сводки. Только официальная песочница Т‑Инвестиций. |
 
-- [wardrobe-stylist](skills/wardrobe-stylist/SKILL.md) — style, fit, outfits and visualizations. Uses a configured catalog by capability, not by a hardcoded server name.
+## Пример: от образа до копилки
+
+1. Стилист формулирует критерии поиска. Агент передаёт их в Marketplace MCP и собирает образ с проверенными вариантами, ссылками и ценой. Неизвестная доставка отмечается отдельно.
+2. Если уместно предложить накопление, агент находит `offer_savings_goal` по описанию инструмента; стилист не зависит от Dream. Dream рассчитывает сценарий накопления. При отсутствии или отклонении токена запрашивает Sandbox-токен через MCP `form`.
+3. По отдельным подтверждениям Dream открывает тестовый счёт и вносит виртуальные деньги. После согласия пользователя агент ставит штатную задачу Hermes: `daily_proposals` считает сводку по открытым целям, Hermes доставляет её в исходный приватный диалог. Задача не торгует. Когда по сохранённой цене денег хватает, сводка предлагает перепроверить карточки товаров; реального вывода или оплаты в песочнице нет.
+
+## Установка и сеть
 
 ```bash
 python3 scripts/install.py --skills wardrobe-stylist
+docker build -f mcp_servers/marketplace/Dockerfile -t marketplace-mcp .
 ```
 
-Use `--dest /absolute/path/to/skills` for a test install, for isolation. The installer does not remove previously installed skills. `--replace` backs up existing installations before replacement.
+- **Marketplace:** контейнер и браузеры запускаются на удалённой машине, с которой проверен доступ к нужным маркетплейсам. Между ней и хостом Hermes подними приватный SSH-туннель. MCP слушает loopback; в Hermes регистрируется локальный конец туннеля, а не публичный порт каталога. Для ручного входа в Ozon с телефона при необходимости настраивается отдельный HTTPS-адрес noVNC. Профиль браузера и ключ MCP — отдельные на участника.
+- **Dream:** настрой отдельный экземпляр MCP на профиль участника. Текущий сервер закрепляет владельца при запуске, поэтому один общий экземпляр не разделяет пользователей. Секреты, базы и браузерные профили хранятся вне репозитория. Форма для токена предназначена только для песочницы; ещё нужна проверка на фактическом клиенте.
 
-## MCP services
-
-- [Marketplace MCP](mcp/README.md): Streamable HTTP catalog, exact variants and price/delivery, with a separate private login handoff for Ozon. Browser runtime is under `mcp/runtime/`, not installed in Hermes as a skill. Build from this checkout with `docker build -f mcp/Dockerfile -t marketplace-mcp .`.
-- [Dream MCP](dream/README.md): sandbox accounts, funding, quotes, orders, forecasts and portfolio. Start it independently using its own configuration. No production trading or real withdrawals.
-
-## Offline verification
+## Офлайн-проверки
 
 ```bash
-python -m pip install -r requirements.txt -r mcp/requirements.txt
+python -m pip install -r requirements.txt -r mcp_servers/marketplace/requirements.txt
 python scripts/validate.py
 python scripts/check.py
-python -m unittest dream.test_dream dream.test_stdio
-PYTHONPATH=mcp python -m unittest discover -s mcp/tests -v
+python -m unittest mcp_servers.dream.test_dream mcp_servers.dream.test_stdio mcp_servers.dream.test_connection
+PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s mcp_servers/marketplace/tests -v
 ```
 
-Offline tests do not establish that Ozon login, a bank order, or Telegram confirmation works on the target host. Keep secrets and browser state outside the checkout.
+Офлайн-проверки не заменяют живой прогон входа в Ozon, операций песочницы и доставки сводки в Telegram.

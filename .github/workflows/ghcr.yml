@@ -21,6 +21,7 @@ jobs:
         with:
           ref: 8bdfa0c40ce829914ef26ade2216c33d83b70c6f
           persist-credentials: false
+      # The historical checkout predates the mcp_servers/ layout. Keep its original Dockerfile path.
       - name: Build pinned image
         run: |
           test "$(git rev-parse HEAD)" = "$COMMIT"

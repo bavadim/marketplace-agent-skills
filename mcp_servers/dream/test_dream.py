@@ -1,8 +1,8 @@
 import tempfile
 import unittest
 from pathlib import Path
-from dream.core import Dream, preview
-from dream.proposals import offer_savings_goal, suggestions, render
+from mcp_servers.dream.core import Dream, preview
+from mcp_servers.dream.proposals import offer_savings_goal, suggestions, render
 
 
 class ProposalTests(unittest.TestCase):

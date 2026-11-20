@@ -10,10 +10,10 @@ from repository import ROOT
 
 
 def main():
-    engine = ROOT / "mcp/runtime/marketplace"
+    engine = ROOT / "mcp_servers/marketplace/runtime/marketplace"
     suites = [
         ("repository", ROOT / "scripts/tests", ROOT / "scripts"),
-        ("marketplace-runtime", ROOT / "mcp/runtime_tests", engine),
+        ("marketplace-runtime", ROOT / "mcp_servers/marketplace/runtime_tests", engine),
         ("wardrobe", ROOT / "skills/wardrobe-stylist/tests", ROOT / "skills/wardrobe-stylist/scripts"),
         ("aliexpress", engine / "vendors/aliexpress/tests", engine / "vendors/aliexpress/scripts"),
         ("ozon", engine / "vendors/ozon/tests", engine / "vendors/ozon/scripts"),

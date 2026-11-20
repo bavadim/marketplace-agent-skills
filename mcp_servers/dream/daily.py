@@ -1,8 +1,8 @@
 """Hermes --no-agent entrypoint: emit one owner's report to stdout."""
 import sys
 
-from dream.proposals import daily_proposal
-from dream.server import from_env
+from mcp_servers.dream.proposals import daily_proposal
+from mcp_servers.dream.server import from_env
 
 
 def main():

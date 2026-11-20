@@ -17,7 +17,7 @@ class StdioTest(unittest.IsolatedAsyncioTestCase):
                     forms.append(params)
                     return ElicitResult(action='decline')
 
-                params = StdioServerParameters(command=sys.executable, args=['-m', 'dream.server'], env={
+                params = StdioServerParameters(command=sys.executable, args=['-m', 'mcp_servers.dream.server'], env={
                     'DREAM_DB': str(Path(directory) / 'dream.db'), 'DREAM_OWNER': 'test',
                     'DREAM_READ_ONLY': readonly, 'TINVEST_SANDBOX_TOKEN': ''})
                 async with Client(params, mode='legacy', elicitation_callback=decline) as client:

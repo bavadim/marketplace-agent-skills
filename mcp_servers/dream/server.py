@@ -7,11 +7,11 @@ from mcp.server import MCPServer
 from mcp.server.mcpserver import Context
 from pydantic import BaseModel, Field
 
-from dream.credentials import TokenFile
+from mcp_servers.dream.credentials import TokenFile
 
-from dream.bank import CredentialRequired, Sandbox
-from dream.core import Dream
-from dream.proposals import daily_proposal, offer_savings_goal as make_offer
+from mcp_servers.dream.bank import CredentialRequired, Sandbox
+from mcp_servers.dream.core import Dream
+from mcp_servers.dream.proposals import daily_proposal, offer_savings_goal as make_offer
 
 
 class Consent(BaseModel):

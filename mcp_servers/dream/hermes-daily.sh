@@ -11,4 +11,4 @@ export DREAM_DB DREAM_OWNER DREAM_TOKEN_FILE DREAM_CA_FILE
 export DREAM_READ_ONLY=1
 unset TINVEST_SANDBOX_TOKEN PYTHONPATH
 cd -- "$DREAM_CHECKOUT"
-exec "$DREAM_PYTHON" -m dream.daily
+exec "$DREAM_PYTHON" -m mcp_servers.dream.daily

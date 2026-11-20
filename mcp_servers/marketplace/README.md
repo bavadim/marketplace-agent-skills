@@ -1,6 +1,6 @@
 # Marketplace MCP prototype
 
-One private Streamable HTTP endpoint (`POST /mcp`) wraps the existing marketplace engine. It exposes only `search`, `product`, `quote`, `session_status`. No cart, purchases, orders, browser control, account mutation, arbitrary URLs or filesystem arguments are MCP tools. `session_status` reports saved metadata, not live verification. A catalog quote can be incomplete.
+One private Streamable HTTP endpoint (`POST /mcp`) wraps the existing marketplace engine. It exposes `search`, `product`, `quote`, `session_status`, and `authorize` when the noVNC viewer is enabled. No cart, purchases, orders, browser control, account mutation, arbitrary URLs or filesystem arguments are MCP tools. `session_status` reports saved metadata, not live verification. A catalog quote can be incomplete.
 
 ## Identity and trust boundary
 
@@ -16,7 +16,7 @@ Each enrolled **human + client installation** gets its own random slot and expir
 Run from the repository root. On a dedicated Linux pilot host, host networking keeps the **existing loopback-only login viewer** reachable by an operator's SSH port forward. It also shares the host network namespace: do not use this shortcut on a shared host with sensitive loopback services. The service itself binds to `127.0.0.1`; there are no public ports in this example.
 
 ```sh
-docker build -f mcp/Dockerfile -t marketplace-mcp:prototype .
+docker build -f mcp_servers/marketplace/Dockerfile -t marketplace-mcp:prototype .
 # Review the upstream profile before applying it to this service.
 curl -fsSLo playwright-seccomp.json https://raw.githubusercontent.com/microsoft/playwright/v1.58.0/utils/docker/seccomp_profile.json
 docker volume create marketplace-mcp-data
@@ -26,6 +26,17 @@ docker run -d --name marketplace-mcp --init --network host --shm-size=512m \
 ```
 
 Chromium runs non-root with sandboxing enabled. If the host's Docker/kernel policy blocks sandboxed Chromium user namespaces, use a supported kernel and a reviewed seccomp profile (see Playwright's official Docker guidance); do not run privileged or disable Chromium's sandbox to make the prototype work. Connect to `http://127.0.0.1:8000/mcp` over a private SSH forward from the agent backend, or put the endpoint behind authenticated private HTTPS with explicit allowed Host values (`MARKET_MCP_HOSTS`). Keep authorization headers out of proxy logs. No browser-origin requests are accepted by `/mcp`; terminate client connections server-side. This prototype uses pre-provisioned bearer credentials, not OAuth discovery.
+
+## Connect Hermes through a private tunnel
+
+Run Marketplace MCP and Chromium on a remote Linux host that can reach the actual storefronts. For example, with the container above listening on `127.0.0.1:8000`, run this from the remote marketplace host after the receiving SSH administrator has restricted the forward to loopback for a dedicated account:
+
+```sh
+ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
+  -R 127.0.0.1:28080:127.0.0.1:8000 mmcp-tunnel@hermes-host.example
+```
+
+Use `GatewayPorts no` and restrict `PermitListen` to `127.0.0.1:28080` for that account; verify the actual listener does not bind to a wildcard. Add `127.0.0.1:28080` to the server's `MARKET_MCP_HOSTS` allowlist. On the Hermes host, a request to `http://127.0.0.1:28080/mcp` without credentials should return HTTP 401. Register that URL in the enrolled Hermes profile as a Streamable HTTP MCP, with that profile's bearer in the Authorization header via its secret store. Run `hermes mcp test marketplace` and then a live catalog lookup. For phone sign-in use the separate HTTPS viewer below, not a public MCP port.
 
 ## Enroll and authorize a browser profile
 
@@ -48,8 +59,8 @@ For disconnect, revoke the grant, wait for in-flight work to stop, cancel any ac
 ## Tests
 
 ```sh
-python -m pip install -r mcp/requirements.txt httpx==0.28.1
-PYTHONPATH=mcp python -m unittest discover -s mcp/tests -v
+python -m pip install -r mcp_servers/marketplace/requirements.txt httpx==0.28.1
+PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s mcp_servers/marketplace/tests -v
 ```
 
 The tests exercise the actual MCP HTTP handler using synthetic per-slot state and a fixture worker; they do not sign into real accounts. A VPS/browser pilot must verify sandbox launch, provider access, sign-in and profile persistence before accepting real users.
@@ -58,7 +69,7 @@ The tests exercise the actual MCP HTTP handler using synthetic per-slot state an
 
 Set `MARKET_MCP_VIEWER_ORIGIN=https://demo.example` and add `demo.example` to `MARKET_MCP_HOSTS`. Serve one instance behind an HTTPS reverse proxy that preserves `Host` and passes WebSocket upgrades to the MCP service. Keep the upstream private and disable request-path logging for `/view/` (links are sensitive). There is no RFB TCP listener. The container needs the same sandbox-compatible kernel/security settings as the base service. Do not add a desktop, socket mounts, `--privileged`, or host files. `MARKET_MCP_VIEWER_LIMIT=4` sets the simultaneous browser limit (1–10); measure capacity before increasing it. Each viewer has a ten-minute deadline.
 
-For each enrolled slot, issue a **separate** viewer key: `python mcp/market_mcp.py viewer-key SLOT`. Give it privately to that human; do not give it to the agent or post it alongside a link. `authorize()` takes no user/profile argument. Call it at the start of every Ozon workflow. It checks the caller's saved Ozon profile and verifies it live when present. It returns `{"ok":true,"status":"success"}` if verified, or `authorization_required` with `authorization_url` and `expires_in` for an interactive attempt. `authorization_in_progress` means a verification/cleanup is still running. In viewer mode the Ozon catalog rejects requests without a successful check in the last ten minutes. Restarting the service invalidates all viewer links; the saved browser profiles remain.
+For each enrolled slot, issue a **separate** viewer key: `python mcp_servers/marketplace/market_mcp.py viewer-key SLOT`. Give it privately to that human; do not give it to the agent or post it alongside a link. `authorize()` takes no user/profile argument. Call it at the start of every Ozon workflow. It checks the caller's saved Ozon profile and verifies it live when present. It returns `{"ok":true,"status":"success"}` if verified, or `authorization_required` with `authorization_url` and `expires_in` for an interactive attempt. `authorization_in_progress` means a verification/cleanup is still running. In viewer mode the Ozon catalog rejects requests without a successful check in the last ten minutes. Restarting the service invalidates all viewer links; the saved browser profiles remain.
 
 The human opens the link, enters their viewer key, and completes the official Ozon checks in Chromium on the VPS. The phone renders noVNC only; Ozon credentials go to the remote Chromium, not into MCP tool data or chat. One-time claim plus an origin-checked WebSocket cookie restrict access to that viewport. On signed-in evidence, the service seals the link, disconnects the active WebSocket, writes the profile and stops the screen. Call `authorize()` again to verify the saved profile in the actual MCP browser runtime. A CAPTCHA that clears without login is not success; a site refusal is not a recoverable puzzle by itself. If the profile is challenged after reopening, the transition must be investigated rather than looped automatically.
 

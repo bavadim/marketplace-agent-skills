@@ -2,7 +2,7 @@
 import re
 from urllib.parse import urlsplit, urlunsplit
 
-from dream.core import preview
+from mcp_servers.dream.core import preview
 
 
 def product_link(url):

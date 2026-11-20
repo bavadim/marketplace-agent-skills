@@ -5,10 +5,10 @@ from pathlib import Path
 from mcp import Client
 from mcp.types import ElicitResult
 
-from dream.bank import CredentialRequired
-from dream.core import Dream
-from dream.credentials import TokenFile
-from dream.server import build
+from mcp_servers.dream.bank import CredentialRequired
+from mcp_servers.dream.core import Dream
+from mcp_servers.dream.credentials import TokenFile
+from mcp_servers.dream.server import build
 
 
 class Bank:
