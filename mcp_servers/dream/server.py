@@ -11,7 +11,6 @@ from mcp_servers.dream.credentials import TokenFile
 
 from mcp_servers.dream.bank import CredentialRequired, Sandbox
 from mcp_servers.dream.core import Dream
-from mcp_servers.dream.proposals import daily_proposal, offer_savings_goal as make_offer
 
 
 class Consent(BaseModel):
@@ -44,29 +43,18 @@ def build(dream, *, token_store=None, bank_factory=None):
             return {'mode': 'sandbox', 'connected': False, 'status': 'connection_unavailable'}
 
     @server.tool(structured_output=True)
-    def offer_savings_goal(title: str, target_kopecks: int, initial_kopecks: int = 0,
-                           monthly_kopecks: int = 0, purchase_urls: list[str] | None = None) -> dict[str, Any]:
-        """Offer a sandbox goal after a concrete priced purchase recommendation or on a savings request. Do not call after refusal or immediate checkout. Ask about starting money and future contributions. If the user wants to proceed, call begin_connection (prompts via form only if needed), then create_goal with the same goal details. This tool opens nothing. Amounts in kopecks."""
-        return make_offer(title, target_kopecks, initial_kopecks, monthly_kopecks, purchase_urls=purchase_urls)
-
-    @server.tool(structured_output=True)
     def list_goals() -> list[dict]:
-        """List only this profile's goals, independent of scheduling. Use for 'show my savings goals' or to restore missed daily recommendations without opening another account. Do not infer schedule state from this list."""
+        """Получить сохранённые копилки владельца профиля: цели, суммы, взносы и состояние счёта. Расписание не входит в результат."""
         return dream.list()
 
     @server.tool(structured_output=True)
     def goal_status(goal_id: str) -> dict[str, Any]:
-        """Read the virtual portfolio and available cash of one goal."""
+        """Получить по копилке стоимость портфеля, позиции, доступные деньги и время наблюдения. Неизвестные значения — null."""
         return dream.status(goal_id)
 
     @server.tool(structured_output=True)
-    def daily_proposals() -> dict[str, Any]:
-        """Generate one deterministic, read-only report for all open goals of this owner. Does not deliver or transact."""
-        return daily_proposal(dream)
-
-    @server.tool(structured_output=True)
     def last_price(instrument_id: str) -> dict[str, Any]:
-        """Get last market price by instrument UID or FIGI, not an execution promise."""
+        """Получить последнюю котировку бумаги по UID или FIGI. Не подтверждает цену исполнения."""
         return dream.bank.call('GetLastPrices', {'instrumentId': [instrument_id]})
 
     @server.tool(structured_output=True)
@@ -107,14 +95,14 @@ def build(dream, *, token_store=None, bank_factory=None):
     @server.tool(structured_output=True)
     async def create_goal(goal_id: str, title: str, target_kopecks: int, ctx: Context,
                           monthly_kopecks: int = 0, purchase_urls: list[str] | None = None) -> dict[str, Any]:
-        """Open a separate virtual brokerage account for this goal after confirmation."""
+        """Создать копилку по названию, сумме цели и плану взносов, открыть отдельный тестовый счёт после подтверждения. Суммы в копейках."""
         if not await approved(ctx, f'Открыть тестовый счёт для цели «{title[:80]}» ({target_kopecks} коп.)?'):
             return {'status': 'not_confirmed'}
         return dream.create(goal_id, title, target_kopecks, monthly_kopecks, purchase_urls=purchase_urls)
 
     @server.tool(structured_output=True)
     async def fund_goal(goal_id: str, operation_id: str, amount_kopecks: int, ctx: Context) -> dict[str, Any]:
-        """Credit virtual rubles after confirmation and verify by readback. Reuse operation_id after interruption. After funding_verified, offer a daily private digest; only on separate consent use the host scheduler to create or update one daily job calling read-only daily_proposals. Never claim a schedule exists before the scheduler confirms it."""
+        """Пополнить копилку виртуальными рублями после подтверждения и сверить зачисление. Для повтора используй тот же operation_id. Сумма в копейках."""
         if not await approved(ctx, f'Пополнить цель {goal_id[:128]} виртуальными деньгами: {amount_kopecks} коп.?'):
             return {'status': 'not_confirmed'}
         return dream.fund(goal_id, operation_id, amount_kopecks)
@@ -122,7 +110,7 @@ def build(dream, *, token_store=None, bank_factory=None):
     @server.tool(structured_output=True)
     async def place_limit_order(goal_id: str, operation_id: str, instrument_id: str, side: str,
                                 lots: int, limit_kopecks: int, ctx: Context) -> dict[str, Any]:
-        """Submit a confirmed virtual limit order; read order_status to verify execution."""
+        """Выставить лимитную заявку на покупку или продажу в песочнице после подтверждения. Проверять исполнение отдельно."""
         if not await approved(ctx, f'Заявка {side}: {instrument_id[:100]}, {lots} лот(ов), '
                                     f'лимит {limit_kopecks} коп. за бумагу; цель {goal_id[:128]}.'):
             return {'status': 'not_confirmed'}
@@ -138,7 +126,7 @@ def build(dream, *, token_store=None, bank_factory=None):
     return server
 
 
-def from_env(*, force_readonly=False):
+def from_env():
     os.umask(0o077)
     path = Path(os.environ['DREAM_DB'])
     if not path.is_absolute():
@@ -149,7 +137,7 @@ def from_env(*, force_readonly=False):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     token_file = os.environ.get('DREAM_TOKEN_FILE')
     token = TokenFile(token_file).read if token_file else os.environ.get('TINVEST_SANDBOX_TOKEN')
-    readonly = force_readonly or os.environ.get('DREAM_READ_ONLY') == '1'
+    readonly = os.environ.get('DREAM_READ_ONLY') == '1'
     return Dream(path, Sandbox(token, os.environ.get('DREAM_CA_FILE'), readonly=readonly), owner,
                  readonly=readonly)
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Инвестируй в мечту"
+  short_description: "Настройка цели и учебной копилки"
+  default_prompt: "Используй $invest-in-dream: Хочу накопить на покупку"
+policy:
+  allow_implicit_invocation: true

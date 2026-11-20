@@ -1,0 +1,6 @@
+interface:
+  display_name: "Ежедневная аналитика копилки"
+  short_description: "Прогресс целей и сравнение сценариев"
+  default_prompt: "Используй $dream-daily-analysis: Покажи прогресс моих копилок"
+policy:
+  allow_implicit_invocation: true

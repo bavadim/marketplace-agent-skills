@@ -15,6 +15,7 @@ def main():
         ("repository", ROOT / "scripts/tests", ROOT / "scripts"),
         ("marketplace-runtime", ROOT / "mcp_servers/marketplace/runtime_tests", engine),
         ("wardrobe", ROOT / "skills/wardrobe-stylist/tests", ROOT / "skills/wardrobe-stylist/scripts"),
+        ("dream-forecast", ROOT / "skills/dream-daily-analysis/tests", ROOT / "skills/dream-daily-analysis/scripts"),
         ("aliexpress", engine / "vendors/aliexpress/tests", engine / "vendors/aliexpress/scripts"),
         ("ozon", engine / "vendors/ozon/tests", engine / "vendors/ozon/scripts"),
     ]

@@ -2,34 +2,16 @@
 import json
 import sqlite3
 from contextlib import contextmanager
-from decimal import Decimal
+from datetime import datetime, timezone
 from uuid import uuid4
+
+from mcp_servers.dream.values import available_kopecks, normalize_links, rub_kopecks
 
 
 def money(kopecks):
     if type(kopecks) is not int or not 0 < kopecks <= 100_000_000_000:
         raise ValueError('Укажи положительную сумму в копейках')
     return {'currency': 'rub', 'units': str(kopecks // 100), 'nano': kopecks % 100 * 10_000_000}
-
-
-def preview(target, initial, monthly):
-    money(target)
-    for value in (initial, monthly):
-        if value != 0:
-            money(value)
-    gap = max(0, target - initial)
-    scenarios = {}
-    for annual in (-5, 0, 8):
-        rate = (1 + Decimal(annual) / 100) ** (Decimal(1) / 12)
-        amount = Decimal(initial)
-        month = 0
-        while amount < target and month < 120:
-            amount = amount * rate + monthly
-            month += 1
-        scenarios[str(annual)] = {'months': month if amount >= target else None,
-                                  'projected_kopecks': int(amount), 'months_evaluated': month}
-    return {'gap_kopecks': gap, 'baseline_months': 0 if not gap else (gap + monthly - 1) // monthly if monthly else None,
-            'scenarios': scenarios, 'note': 'Условные чистые ставки, не прогноз. Цена цели фиксирована.'}
 
 
 class Dream:
@@ -69,7 +51,6 @@ class Dream:
             raise ValueError('Новый токен не видит открытые счета этого профиля')
 
     def cash(self, args):
-        from mcp_servers.dream.proposals import rub_kopecks
         items = self.bank.call('GetSandboxPositions', args).get('money', [])
         if not isinstance(items, list) or any(not isinstance(item, dict) for item in items):
             raise ValueError('Не удалось сверить рублёвый баланс')
@@ -104,6 +85,9 @@ class Dream:
             limits = self.bank.call('GetSandboxWithdrawLimits', args)
             result['withdrawable_virtual'] = limits.get('money')
             result['blocked_virtual'] = [limits.get(key, []) for key in ('blocked', 'blockedGuarantee')]
+            result['available_kopecks'] = available_kopecks(result['withdrawable_virtual'], result['blocked_virtual'])
+            result['portfolio_kopecks'] = rub_kopecks(portfolio.get('totalAmountPortfolio'))
+            result['observed_at'] = datetime.now(timezone.utc).isoformat()
         return result
 
     def mutate(self, goal, op, kind, params):
@@ -142,12 +126,11 @@ class Dream:
                 before = self.cash(args)
                 response = self.bank.call('SandboxPayIn', {**args, 'amount': money(params['kopecks'])})
                 after = self.cash(args)
-                from mcp_servers.dream.proposals import rub_kopecks
                 if after - before != params['kopecks'] or rub_kopecks(response.get('balance')) != after:
                     raise ValueError('Взнос ещё не подтверждён; повторно не начисляем')
                 record['contributed_kopecks'] += params['kopecks']
                 result = {'status': 'funding_verified', 'balance': response.get('balance'),
-                          'goal_id': goal, 'next_action': 'offer_daily_monitoring'}
+                          'goal_id': goal}
             elif kind == 'order':
                 response = self.bank.call('PostSandboxOrder', {**args, **params, 'orderId': str(uuid4())})
                 result = {k: v for k, v in response.items() if k != 'accountId'}
@@ -160,13 +143,18 @@ class Dream:
             db.execute('UPDATE ops SET result=? WHERE owner=? AND id=?', (json.dumps(result), self.owner, op))
         return result
 
-    def create(self, goal, title, target, monthly, purchase_url=None, purchase_urls=None):
-        from mcp_servers.dream.proposals import offer_savings_goal
-        offer = offer_savings_goal(title, target, monthly_kopecks=monthly, purchase_url=purchase_url,
-                                   purchase_urls=purchase_urls)
+    def create(self, goal, title, target, monthly, purchase_urls=None):
+        money(target)
+        if type(monthly) is not int or monthly < 0:
+            raise ValueError('Взнос должен быть неотрицательной суммой в копейках')
+        if monthly:
+            money(monthly)
+        if not 0 < len(title.strip()) <= 80:
+            raise ValueError('Название цели: 1–80 символов')
         params = {'title': title, 'target_kopecks': target, 'monthly_kopecks': monthly}
-        if offer['purchase_urls']:
-            params['purchase_urls'] = offer['purchase_urls']
+        links = normalize_links(purchase_urls)
+        if links:
+            params['purchase_urls'] = links
         return self.mutate(goal, 'create:' + goal, 'open', params)
 
     def fund(self, goal, op, kopecks):
