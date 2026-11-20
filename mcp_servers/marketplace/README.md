@@ -63,4 +63,6 @@ ssh -NT -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
 
 Для ручного мобильного входа задайте HTTPS `MARKET_MCP_VIEWER_ORIGIN`, добавьте его Host в `MARKET_MCP_HOSTS`, а на принимающей стороне направьте HTTPS и WebSocket viewer через туннель. Не публикуйте VNC/CDP и не логируйте ссылки, cookies или заголовки авторизации.
 
+Ручной вход в noVNC открывает отдельный Chromium с окном и включённой песочницей, без подключения браузерного драйвера. Войди на странице Ozon, нажми **«Завершить ручной вход»** и дождись закрытия экрана. Chromium сохранит профиль и завершится. Затем вернись к агенту: в режиме Hermes Gateway первый запрос поиска проверит вход отдельным запуском в том же профиле. Закрытие экрана само по себе не подтверждает вход.
+
 Проверки из корня: `hermes mcp test marketplace` и `PYTHONPATH=mcp_servers/marketplace python -m unittest discover -s tests/marketplace/mcp`. Офлайн-тесты не проверяют реальный вход и доступность витрины.

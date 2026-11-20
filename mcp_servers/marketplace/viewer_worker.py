@@ -2,7 +2,9 @@
 import fcntl
 import os
 from pathlib import Path
+import re
 import secrets
+import shutil
 import signal
 import socket
 import subprocess
@@ -11,13 +13,67 @@ import time
 
 ENGINE = Path(__file__).resolve().parent / 'runtime/marketplace'
 sys.path.insert(0, str(ENGINE))
-from browser_runtime import ManagedBrowser, SITES
+from browser_runtime import SITES, metadata, metadata_path, private_directory, profile_base, save_private
 
 
 def mark(directory, name, value=''):
     temporary = directory / (name + '.new')
     temporary.write_text(value)
     os.replace(temporary, directory / name)
+
+
+def stop_browser(browser):
+    if browser.poll() is None:
+        # Chromium treats SIGTERM as desktop session shutdown, not normal browser exit.
+        browser.send_signal(signal.SIGINT)
+        try:
+            browser.wait(5)
+        except subprocess.TimeoutExpired:
+            browser.kill()
+            browser.wait()
+            return False
+    return browser.returncode == 0
+
+
+def manual_chromium(directory, deadline, display_server, url):
+    info = metadata('ozon')
+    saved_id = info.get('profile_id') or ''
+    profile_id = saved_id if re.fullmatch(r'[a-f0-9]{32}', saved_id) else secrets.token_hex(16)
+    profile = private_directory(profile_base() / ('ozon-' + profile_id))
+    fd = os.open(str(profile) + '.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'r+b') as guard:
+        try:
+            fcntl.flock(guard, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 'profile_busy'
+        binary = os.environ.get('MARKETPLACE_CHROMIUM_BINARY') or shutil.which('chromium')
+        if not binary:
+            return 'viewer_failed'
+        browser = subprocess.Popen([binary, '--ozone-platform=x11', '--disable-gpu', '--no-proxy-server',
+            '--no-first-run', '--no-default-browser-check', '--window-position=0,0', '--window-size=880,920',
+            '--lang=ru-RU', '--password-store=basic', '--restore-last-session', f'--user-data-dir={profile}', url],
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        committed = False
+        try:
+            mark(directory, 'ready')
+            while time.monotonic() < deadline and display_server.poll() is None:
+                if (directory / 'check').exists():
+                    mark(directory, 'sealed')
+                    if not stop_browser(browser):
+                        return 'viewer_failed'
+                    save_private(metadata_path('ozon'), {**info, 'profile_id': profile_id, 'profile_path': str(profile),
+                        'browser': 'chromium-desktop', 'manual_handoff': True, 'authenticated': None,
+                        'last_verified_at': None, 'last_check_status': 'manual_handoff'})
+                    committed = True
+                    return 'handed_off'
+                if browser.poll() is not None:
+                    return 'viewer_failed'
+                time.sleep(.2)
+            return 'authorization_expired'
+        finally:
+            stop_browser(browser)
+            if not committed and profile_id != saved_id:
+                shutil.rmtree(profile, ignore_errors=True)
 
 
 def run(directory, deadline):
@@ -45,32 +101,7 @@ def run(directory, deadline):
             time.sleep(.12)
         else:
             return 'viewer_failed'
-        with ManagedBrowser('ozon', interactive_x11=True, timeout_ms=15000) as browser:
-            browser.open()
-            # Even on a navigation timeout, leave the actual page to its human operator.
-            try:
-                browser.page.goto(SITES['ozon']['url'], wait_until='commit', timeout=12000)
-            except Exception:
-                if browser.page.url in ('', 'about:blank'):
-                    return 'viewer_failed'
-            mark(directory, 'ready')
-            while time.monotonic() < deadline and server.poll() is None:
-                if browser.page.is_closed():
-                    return 'viewer_failed'
-                account = browser.page.locator('[data-widget="profileLogo"] a[href="/my/main"]')
-                label = account.first.text_content(timeout=1500) if account.count() else ''
-                requested = (directory / 'check').exists()
-                if requested:
-                    (directory / 'check').unlink(missing_ok=True)
-                if requested or (label and label.strip() not in ('Войти', 'Личный кабинет')):
-                    validate = browser.validate_login(navigate=False)
-                    if validate.get('authenticated') is True:
-                        mark(directory, 'sealed')  # Stop the viewer before flushing/closing Chromium.
-                        break
-                browser.page.wait_for_timeout(650)
-            else:
-                return 'authorization_expired'
-        return 'connected'
+        return manual_chromium(directory, deadline, server, SITES['ozon']['url'])
     finally:
         if server.poll() is None:
             server.terminate()

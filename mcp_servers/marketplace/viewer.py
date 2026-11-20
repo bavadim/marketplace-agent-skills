@@ -262,14 +262,15 @@ class Viewer:
             if job.directory:
                 shutil.rmtree(job.directory, ignore_errors=True)
             with self.lock:
-                if result != 'connected':
+                if result not in ('connected', 'handed_off'):
                     self.failures.pop(job.slot, None)
                     self.failures[job.slot] = result if result in ('authorization_expired', 'profile_busy', 'viewer_failed') else 'viewer_failed'
                     if len(self.failures) > 256:
                         self.failures.pop(next(iter(self.failures)))
                 else:
                     self.failures.pop(job.slot, None)
-                    self.checked_until[job.slot] = time.monotonic() + 600
+                    if result == 'connected':
+                        self.checked_until[job.slot] = time.monotonic() + 600
                 self.drop(job)
 
     def active_job(self, job):

@@ -251,6 +251,9 @@ class ManagedBrowser:
                 if self.session.exists():
                     self.document = read_private(self.session)
             self.info = metadata(self.provider) if self.canonical else {}
+            manual_handoff = self.info.get('manual_handoff') is True
+            if manual_handoff:
+                self.document = {}  # Never replace the fresh manual profile with an older snapshot.
             old_generation = self.document.get("session_id") or self.document.get("exported_at")
             generation = self.info.get("import_generation")
             seed = bool(self.document) and (not self.info.get("profile_id") or old_generation != generation)
@@ -276,6 +279,8 @@ class ManagedBrowser:
                 raise BrowserError("session_busy") from error
             self.driver = self.stack.enter_context(owned_driver(sync_playwright))
             opts = launch_options(self.executable, self.timeout_ms)
+            if manual_handoff:
+                opts['args'].append('--restore-last-session')
             if self.interactive_x11:
                 opts['env'].update({key: os.environ[key] for key in ('DISPLAY', 'XAUTHORITY')})
                 opts.update(headless=False, no_viewport=True)
@@ -332,6 +337,7 @@ class ManagedBrowser:
         self.info["import_generation"] = self.document["session_id"]
         if self.session:
             save_private(self.session, self.document)
+        self.info.pop('manual_handoff', None)
         if self.canonical:
             save_private(metadata_path(self.provider), self.info)
 

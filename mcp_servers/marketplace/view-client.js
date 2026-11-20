@@ -50,8 +50,9 @@ keys.addEventListener('keydown', event => {
 done.addEventListener('click', async () => {
     done.disabled = true;
     try {
-        await fetch('check', {method:'POST', cache:'no-store'});
-        status.textContent = 'Проверяем. Если экран не закрылся, проверь, что Ozon завершил вход.';
+        const response = await fetch('check', {method:'POST', cache:'no-store'});
+        if (!response.ok) throw new Error('Unable to finish login');
+        status.textContent = 'Закрываем браузер и сохраняем профиль…';
     } catch {
         status.textContent = 'Связь прервана.';
     } finally {
