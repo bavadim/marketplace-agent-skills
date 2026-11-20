@@ -317,7 +317,9 @@ class Viewer:
                 return await private(scope, receive, send)
             async def secure(message):
                 if message['type'] == 'http.response.start':
-                    headers = [(b'cache-control', b'no-store'), (b'referrer-policy', b'no-referrer'),
+                    # no-referrer also suppresses Origin on native form POSTs in Chromium.
+                    # strict-origin preserves the CSRF check without exposing ticket paths.
+                    headers = [(b'cache-control', b'no-store'), (b'referrer-policy', b'strict-origin'),
                                (b'x-content-type-options', b'nosniff'), (b'x-frame-options', b'DENY'),
                                (b'content-security-policy', f"default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src 'self' wss://{self.host}; form-action 'self'; frame-ancestors 'none'".encode())]
                     message = {**message, 'headers': [*message.get('headers', []), *headers]}

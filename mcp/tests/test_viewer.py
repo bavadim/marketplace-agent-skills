@@ -93,6 +93,7 @@ class ViewerTest(unittest.TestCase):
                 a = urlsplit(authorize(a_bearer)['authorization_url']).path
                 b = urlsplit(authorize(b_bearer)['authorization_url']).path
                 self.assertNotEqual(a, b)
+                self.assertEqual(client.get(a).headers['referrer-policy'], 'strict-origin')
                 self.assertFalse(viewer.checked(alice))
                 self.assertEqual(urlsplit(authorize(a_bearer)['authorization_url']).path, a)
                 headers = {'Origin': origin}
