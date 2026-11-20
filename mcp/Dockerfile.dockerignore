@@ -4,6 +4,7 @@
 !mcp/*.py
 !mcp/view.html
 !mcp/view-client.js
+!mcp/view-claim.js
 !mcp/chromium-policy.json
 !mcp/requirements.txt
 !skills/

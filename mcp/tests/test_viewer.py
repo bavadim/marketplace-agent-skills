@@ -29,6 +29,19 @@ class ViewerTest(unittest.TestCase):
             with self.subTest(origin=origin), self.assertRaises(ValueError):
                 Viewer(None, None, origin)
 
+    def test_invite_is_bound_to_slot_and_ticket_and_consumed_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            grants = Grants(Path(tmp))
+            alice, _ = grants.issue('alice')
+            bob, _ = grants.issue('bob')
+            ticket = 'A' * 32
+            key = grants.make_viewer_invite(alice, ticket)
+            self.assertFalse(grants.verify_viewer(alice, key))
+            self.assertFalse(grants.use_viewer_invite(alice, 'B' * 32, key))
+            self.assertFalse(grants.use_viewer_invite(bob, ticket, key))
+            self.assertTrue(grants.use_viewer_invite(alice, ticket, key))
+            self.assertFalse(grants.use_viewer_invite(alice, ticket, key))
+
     def test_two_viewers_have_distinct_leases_and_revoke_existing_socket(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -85,7 +98,9 @@ class ViewerTest(unittest.TestCase):
                 headers = {'Origin': origin}
                 self.assertEqual(client.post(a, data={'key': b_key}, headers=headers).status_code, 403)
                 self.assertEqual(client.post(a, data={'key': a_key}, headers={'Origin': 'https://other.example'}).status_code, 403)
-                for path, key in ((a, a_key), (b, b_key)):
+                invitation = grants.make_viewer_invite(alice, a.split('/')[2])
+                self.assertEqual(client.get('/view/claim.js').status_code, 200)
+                for path, key in ((a, invitation), (b, b_key)):
                     self.assertEqual(client.post(path, data={'key': key}, headers=headers, follow_redirects=False).status_code, 303)
                     for _ in range(20):
                         if client.get(path+'status').json()['status'] == 'ready':

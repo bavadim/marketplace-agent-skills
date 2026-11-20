@@ -23,7 +23,7 @@ from starlette.websockets import WebSocketDisconnect
 
 HERE = Path(__file__).resolve().parent
 TOKEN = re.compile(r'[A-Za-z0-9_-]{32}')
-CLAIM = '''<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Вход в Ozon</title><h1>Вход в Ozon</h1><p>Введи отдельный ключ просмотра, выданный при подключении. Не пароль от Ozon.</p><form method="post"><input type="password" name="key" required maxlength="32" autocomplete="off"><button>Открыть удалённый браузер</button></form></html>'''
+CLAIM = '''<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Вход в Ozon</title><h1>Вход в Ozon</h1><p id="hint">Введи отдельный ключ просмотра, выданный при подключении. Не пароль от Ozon.</p><form method="post"><input type="password" name="key" required maxlength="32" autocomplete="off"><button>Открыть удалённый браузер</button></form><script src="/view/claim.js" defer></script></html>'''
 
 
 @dataclass
@@ -155,13 +155,15 @@ class Viewer:
             if len(body) > 512:
                 return HTMLResponse('Request too large', status_code=413)
         key = parse_qs(body.decode('ascii', 'replace')).get('key', [''])[0]
-        if not TOKEN.fullmatch(key) or not self.grants.verify_viewer(job.slot, key):
+        if not TOKEN.fullmatch(key):
             return HTMLResponse('Ключ просмотра не подходит.', status_code=403)
         with self.lock:
             if job.lease or not self.available(job):
                 return HTMLResponse('Ссылка уже использована или истекла.', status_code=410)
             if sum(bool(x.lease) for x in self.jobs.values()) >= self.limit:
                 return HTMLResponse('Все экраны заняты. Вернись назад и повтори через минуту.', status_code=503)
+            if not (self.grants.verify_viewer(job.slot, key) or self.grants.use_viewer_invite(job.slot, job.ticket, key)):
+                return HTMLResponse('Ключ просмотра не подходит.', status_code=403)
             job.lease = secrets.token_urlsafe(24)
             job.supervisor = asyncio.create_task(self.run(job))
         response = RedirectResponse('screen', status_code=303)
@@ -298,7 +300,8 @@ class Viewer:
                 pass
 
     def wrap(self, private):
-        routes = [Route('/view/{ticket}/', self.page, methods=['GET', 'POST']),
+        routes = [Route('/view/claim.js', lambda req: FileResponse(HERE/'view-claim.js', media_type='text/javascript')),
+                  Route('/view/{ticket}/', self.page, methods=['GET', 'POST']),
                   Route('/view/{ticket}/screen', self.screen), Route('/view/{ticket}/status', self.status),
                   Route('/view/{ticket}/check', self.check, methods=['POST']),
                   WebSocketRoute('/view/{ticket}/ws', self.websocket),

@@ -14,7 +14,7 @@ COPY mcp/requirements.txt /app/mcp-requirements.txt
 RUN pip install --no-cache-dir -r /app/engine-requirements.txt -r /app/mcp-requirements.txt
 COPY skills/marketplace-shopping /app/skills/marketplace-shopping
 COPY skills/marketplace-accounts /app/skills/marketplace-accounts
-COPY mcp/*.py mcp/view.html mcp/view-client.js /app/mcp/
+COPY mcp/*.py mcp/view.html mcp/view-client.js mcp/view-claim.js /app/mcp/
 COPY mcp/chromium-policy.json /etc/chromium/policies/managed/marketplace.json
 ENV HOME=/data
 USER 10001:10001

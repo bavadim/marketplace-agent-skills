@@ -64,6 +64,8 @@ class Grants:
           slot TEXT PRIMARY KEY, label TEXT NOT NULL, digest TEXT UNIQUE NOT NULL,
           expires_at INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0)''')
         self.sql('CREATE TABLE IF NOT EXISTS viewer_keys (slot TEXT PRIMARY KEY, digest TEXT NOT NULL)')
+        self.sql('''CREATE TABLE IF NOT EXISTS viewer_invites (
+                    ticket TEXT PRIMARY KEY, slot TEXT NOT NULL, digest TEXT NOT NULL, expires_at INTEGER NOT NULL)''')
 
     def sql(self, statement, bindings=()):
         conn = sqlite3.connect(self.db, timeout=5)
@@ -107,6 +109,22 @@ class Grants:
         row = self.sql('''SELECT v.digest FROM viewer_keys v JOIN grants g USING(slot)
                           WHERE slot=? AND revoked=0 AND expires_at>?''', (slot, int(time.time())))
         return bool(row and hmac.compare_digest(row[0], hashlib.sha256(key.encode()).hexdigest()))
+
+    def make_viewer_invite(self, slot, ticket):
+        if not self.active(slot) or not re.fullmatch(r'[A-Za-z0-9_-]{32}', ticket):
+            raise ValueError('inactive grant or invalid ticket')
+        key = secrets.token_urlsafe(24)
+        now = int(time.time())
+        self.sql('DELETE FROM viewer_invites WHERE expires_at <= ?', (now,))
+        self.sql('INSERT OR REPLACE INTO viewer_invites VALUES (?,?,?,?)',
+                 (ticket, slot, hashlib.sha256(key.encode()).hexdigest(), now + 600))
+        return key
+
+    def use_viewer_invite(self, slot, ticket, key):
+        return self.sql('''DELETE FROM viewer_invites WHERE ticket=? AND slot=? AND digest=? AND expires_at>?
+                         AND EXISTS (SELECT 1 FROM grants WHERE slot=? AND revoked=0 AND expires_at>?) RETURNING ticket''',
+                        (ticket, slot, hashlib.sha256(key.encode()).hexdigest(), int(time.time()),
+                         slot, int(time.time()))) is not None
 
 
 class Engine:
@@ -282,6 +300,7 @@ def main():
     issue = subs.add_parser('issue'); issue.add_argument('label'); issue.add_argument('--days', type=int, default=30, choices=range(1, 91), metavar='1..90')
     revoke = subs.add_parser('revoke'); revoke.add_argument('slot')
     viewer_key = subs.add_parser('viewer-key'); viewer_key.add_argument('slot')
+    invite = subs.add_parser('viewer-invite'); invite.add_argument('slot'); invite.add_argument('ticket')
     account = subs.add_parser('account'); account.add_argument('slot'); account.add_argument('operation', choices=sorted(ADMIN)); account.add_argument('--provider', choices=['ozon', 'aliexpress'], default='ozon'); account.add_argument('--handoff-id')
     args = parser.parse_args()
     root = Path(os.environ.get('MARKET_MCP_DATA', '/data'))
@@ -307,6 +326,11 @@ def main():
         if not SLOT.fullmatch(args.slot) or not grants.active(args.slot):
             parser.error('unknown or inactive grant')
         print(json.dumps({'viewer_key': grants.set_viewer_key(args.slot)}))
+    elif args.action == 'viewer-invite':
+        try:
+            print(json.dumps({'invite': grants.make_viewer_invite(args.slot, args.ticket)}))
+        except ValueError as exc:
+            parser.error(str(exc))
     else:
         if not SLOT.fullmatch(args.slot) or (not grants.active(args.slot) and args.operation not in {'session.forget', 'session.login.cancel'}):
             parser.error('unknown or inactive grant')
