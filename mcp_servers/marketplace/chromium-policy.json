@@ -1,6 +1,5 @@
 {
-  "URLBlocklist": ["*"],
-  "URLAllowlist": ["https://ozon.ru", "https://ozone.ru", "https://aliexpress.ru", "https://alicdn.com", "about:blank"],
+  "URLBlocklist": ["file://*"],
   "DownloadRestrictions": 3,
   "FileSelectionDialogsAllowed": false,
   "PrintingEnabled": false,
