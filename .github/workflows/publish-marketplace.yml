@@ -2,12 +2,19 @@ name: Publish Marketplace MCP
 on:
   push:
     branches: [feat/invest-in-dream]
-    paths: [.github/workflows/publish-marketplace.yml]
+    paths:
+      - .github/workflows/publish-marketplace.yml
+      - mcp_servers/marketplace/**
+      - requirements.txt
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+
+concurrency:
+  group: marketplace-publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -34,3 +41,7 @@ jobs:
           printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
           docker push "$IMAGE"
           docker manifest inspect "$IMAGE" >/dev/null
+          if [[ "$GITHUB_REF" == refs/heads/feat/invest-in-dream && "$GITHUB_SHA" == "$(git ls-remote origin "$GITHUB_REF" | cut -f1)" ]]; then
+            docker tag "$IMAGE" "${IMAGE%:*}:pilot"
+            docker push "${IMAGE%:*}:pilot"
+          fi

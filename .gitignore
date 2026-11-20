@@ -4,6 +4,9 @@
 !/README.md
 !/LICENSE
 !/requirements.txt
+!/marketplace-up.sh
+!/marketplace-tunnel.sh
+!/marketplace-novnc-proxy.sh
 !/mcp_servers/
 !/tests/
 !/skills/

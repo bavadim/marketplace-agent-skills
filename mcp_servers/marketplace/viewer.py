@@ -76,7 +76,7 @@ class Viewer:
                 if not job.lease and job.deadline <= time.monotonic():
                     self.drop(job)
             if job := self.by_slot.get(slot):
-                if job.deadline > time.monotonic() and self.available(job):
+                if not job.lease and self.available(job):
                     return self.link(job)
                 return {'ok': False, 'status': 'authorization_in_progress'}
             if slot in self.checking:
@@ -112,7 +112,12 @@ class Viewer:
             return self.checked_until.get(slot, 0) > time.monotonic()
 
     def link(self, job):
-        result = {'ok': False, 'status': 'authorization_required', 'authorization_url': f'{self.origin}/view/{job.ticket}/', 'expires_in': int(max(0, job.deadline - time.monotonic()))}
+        # Called with the viewer lock held, before a lease exists. A new
+        # request replaces the previous unclaimed invite without extending TTL.
+        invite = self.grants.make_viewer_invite(job.slot, job.ticket)
+        result = {'ok': False, 'status': 'authorization_required',
+                  'authorization_url': f'{self.origin}/view/{job.ticket}/#invite={invite}',
+                  'expires_in': int(max(0, job.deadline - time.monotonic()))}
         if previous := self.failures.get(job.slot):
             result['previous_attempt'] = previous
         return result
