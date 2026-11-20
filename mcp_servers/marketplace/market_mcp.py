@@ -36,10 +36,13 @@ ADMIN = {'session.login.start', 'session.login.status', 'session.login.finish',
          'session.login.cancel', 'session.validate', 'session.forget'}
 SLOT = re.compile(r'[a-f0-9]{32}')
 BEARER = re.compile(r'mk_[A-Za-z0-9_-]{43}')
+GATEWAY_KEY = re.compile(r'[a-f0-9]{64}')
+IDENTITY = re.compile(r'(?:telegram:[1-9][0-9]{0,18}|(?:hermes:)?[a-z][a-z0-9_-]{0,63})')
 REF = r'^(ozon:[0-9]{1,30}|aliexpress:[0-9]{1,30}(:[0-9]{1,30})?)$'
 Marketplace = Annotated[Literal['ozon', 'aliexpress'],
                         Field(description='Select exactly one marketplace: ozon (ozon.ru) or aliexpress (aliexpress.ru).')]
 Principal = ContextVar('marketplace_principal', default=None)
+GatewayIdentity: ContextVar[str | None] = ContextVar('marketplace_gateway_identity', default=None)
 
 
 def private_dir(path):
@@ -68,6 +71,8 @@ class Grants:
         self.sql('CREATE TABLE IF NOT EXISTS viewer_keys (slot TEXT PRIMARY KEY, digest TEXT NOT NULL)')
         self.sql('''CREATE TABLE IF NOT EXISTS viewer_invites (
                     ticket TEXT PRIMARY KEY, slot TEXT NOT NULL, digest TEXT NOT NULL, expires_at INTEGER NOT NULL)''')
+        self.sql('''CREATE TABLE IF NOT EXISTS gateway_identities (
+                    identity TEXT PRIMARY KEY, slot TEXT NOT NULL UNIQUE REFERENCES grants(slot))''')
 
     def sql(self, statement, bindings=()):
         conn = sqlite3.connect(self.db, timeout=5)
@@ -90,6 +95,28 @@ class Grants:
         row = self.sql('SELECT slot FROM grants WHERE digest=? AND revoked=0 AND expires_at>?',
                        (hashlib.sha256(key.encode()).hexdigest(), int(time.time())))
         return row[0] if row else None
+
+    def identity_slot(self, identity, *, provision=False):
+        if not IDENTITY.fullmatch(identity):
+            raise ValueError('invalid gateway identity')
+        if not provision:
+            row = self.sql('SELECT slot FROM gateway_identities WHERE identity=?', (identity,))
+            return row[0] if row else None
+        conn = sqlite3.connect(self.db, timeout=5)
+        try:
+            with conn:
+                conn.execute('BEGIN IMMEDIATE')
+                row = conn.execute('SELECT slot FROM gateway_identities WHERE identity=?', (identity,)).fetchone()
+                if row:
+                    return row[0]
+                slot = secrets.token_hex(16)
+                # No per-user bearer is issued. Only a trusted gateway can map to this slot.
+                conn.execute('INSERT INTO grants (slot,label,digest,expires_at) VALUES (?,?,?,?)',
+                             (slot, identity, 'gateway:' + slot, 2**63 - 1))
+                conn.execute('INSERT INTO gateway_identities VALUES (?,?)', (identity, slot))
+                return slot
+        finally:
+            conn.close()
 
     def active(self, slot):
         return self.sql('SELECT 1 FROM grants WHERE slot=? AND revoked=0 AND expires_at>?',
@@ -195,8 +222,11 @@ class Engine:
 
 
 class PrivateTransport:
-    def __init__(self, app, grants, hosts):
+    def __init__(self, app, grants, hosts, gateway_key=None):
         self.app, self.grants, self.hosts = app, grants, {host.encode('ascii') for host in hosts}
+        if gateway_key is not None and not GATEWAY_KEY.fullmatch(gateway_key):
+            raise ValueError('gateway key must be 32 bytes encoded as lowercase hex')
+        self.gateway_key = gateway_key
 
     async def __call__(self, scope, receive, send):
         if scope['type'] != 'http':
@@ -210,11 +240,19 @@ class PrivateTransport:
             return await JSONResponse({'error': 'browser_origin_not_allowed'}, 403)(scope, receive, send)
         key = authorization[0][7:].decode('ascii', errors='replace') if (
             len(authorization) == 1 and authorization[0].startswith(b'Bearer ')) else ''
-        slot = self.grants.lookup(key)
-        if not slot:
+        identity = None
+        identities = [value for name, value in headers if name == b'x-marketplace-identity']
+        if (self.gateway_key and hmac.compare_digest(key.encode('ascii', errors='replace'), self.gateway_key.encode('ascii'))
+                and len(identities) == 1):
+            value = identities[0].decode('ascii', errors='replace')
+            if IDENTITY.fullmatch(value) and value != 'custom':
+                identity = value
+        slot = self.grants.lookup(key) if not identities else None
+        if not slot and identity is None:
             return await JSONResponse({'error': 'unauthorized'}, 401, {'WWW-Authenticate': 'Bearer',
                 'Cache-Control': 'no-store'})(scope, receive, send)
         token = Principal.set(slot)
+        trusted = GatewayIdentity.set(identity)
         async def no_store(message):
             if message['type'] == 'http.response.start':
                 message = {**message, 'headers': [*message.get('headers', []), (b'cache-control', b'no-store')]}
@@ -222,6 +260,7 @@ class PrivateTransport:
         try:
             await self.app(scope, receive, no_store)
         finally:
+            GatewayIdentity.reset(trusted)
             Principal.reset(token)
 
 
@@ -232,12 +271,17 @@ class CatalogServer(MCPServer):
         return await super().call_tool(name, arguments, context)
 
 
-def create_app(grants, engine, hosts, viewer=None):
+def create_app(grants, engine, hosts, viewer=None, *, gateway_key=None):
     server = CatalogServer('marketplace-catalog', log_level='CRITICAL')
     read_only = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=True)
 
     def call(method, marketplace, params):
+        identity = GatewayIdentity.get()
         slot = Principal.get()
+        if identity:
+            slot = grants.identity_slot(identity, provision=(marketplace == 'aliexpress' and method == 'search'))
+            if slot is None:
+                return {'ok': False, 'status': 'authorization_required'}
         if not slot or not grants.active(slot):
             raise PermissionError('access required')
         if viewer and method != 'session.status' and viewer.busy(slot):
@@ -248,7 +292,11 @@ def create_app(grants, engine, hosts, viewer=None):
         if method in ('search', 'session.status'):
             params['providers'] = [marketplace]
         if viewer and marketplace == 'ozon' and method != 'session.status' and not viewer.checked(slot):
-            return {'ok': False, 'status': 'authorization_check_required', 'next_tool': 'authorize'}
+            if not identity:
+                return {'ok': False, 'status': 'authorization_check_required', 'next_tool': 'authorize'}
+            result = viewer.verify(slot)
+            if not result['ok']:
+                return result
         result = engine.call(slot, method, params)
         if method == 'session.status':
             rows = result.get('data', {}).get('sessions', [])
@@ -281,19 +329,23 @@ def create_app(grants, engine, hosts, viewer=None):
         return call('session.status', marketplace, {})
 
     if viewer:
-        @server.tool(structured_output=True)
+        @server.tool(structured_output=True, annotations=ToolAnnotations.model_validate({
+            'readOnlyHint': False, 'destructiveHint': True, 'openWorldHint': True}))
         def authorize(marketplace: Marketplace) -> dict[str, Any]:
-            """Check ozon access and return a private viewer link if needed. Interactive login for aliexpress is not supported here."""
-            slot = Principal.get()
-            if not slot or not grants.active(slot):
-                raise PermissionError('access required')
+            """Open a private Ozon sign-in link. For gateway users this replaces any saved Ozon sign-in; don't use it as a status check. AliExpress login is unsupported."""
+            identity = GatewayIdentity.get()
             if marketplace != 'ozon':
                 return {'ok': False, 'status': 'interactive_authorization_unsupported'}
-            return viewer.authorize(slot)
+            slot = Principal.get()
+            if identity:
+                slot = grants.identity_slot(identity, provision=True)
+            if not slot or not grants.active(slot):
+                raise PermissionError('access required')
+            return viewer.authorize(slot, reset=bool(identity))
 
     app = server.streamable_http_app(stateless_http=True, json_response=True, max_request_body_size=32_768,
               transport_security=TransportSecuritySettings(allowed_hosts=hosts, allowed_origins=[]))
-    private = PrivateTransport(app, grants, hosts)
+    private = PrivateTransport(app, grants, hosts, gateway_key)
     return viewer.wrap(private) if viewer else private
 
 
@@ -318,7 +370,8 @@ def main():
         hosts = os.environ.get('MARKET_MCP_HOSTS', '127.0.0.1:8000,localhost:8000').split(',')
         origin = os.environ.get('MARKET_MCP_VIEWER_ORIGIN')
         viewer = Viewer(grants, engine, origin, limit=int(os.environ.get('MARKET_MCP_VIEWER_LIMIT', '4'))) if origin else None
-        uvicorn.run(create_app(grants, engine, hosts, viewer), host=os.environ.get('MARKET_MCP_BIND', '127.0.0.1'),
+        uvicorn.run(create_app(grants, engine, hosts, viewer, gateway_key=os.environ.get('MARKET_MCP_GATEWAY_KEY')),
+                    host=os.environ.get('MARKET_MCP_BIND', '127.0.0.1'),
                     port=8000, workers=1, access_log=False, proxy_headers=False, ws_max_size=65536)
     elif args.action == 'issue':
         slot, key = grants.issue(args.label, int(time.time()) + args.days * 86400)

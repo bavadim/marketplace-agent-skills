@@ -25,6 +25,17 @@ if [[ -n $state && -z $update ]]; then
     printf 'Warning: container uses a different viewer origin; run again with --update to change it.\n' >&2
   fi
 else
+  gateway_args=()
+  key_file=${MMCP_GATEWAY_KEY_FILE:-$HOME/.mmcp-tunnel/gateway.key}
+  if [[ -e $key_file || -n ${MMCP_GATEWAY_KEY_FILE:-} ]]; then
+    [[ -f $key_file && ! -L $key_file && -O $key_file ]] || { printf 'Invalid gateway key file: %s\n' "$key_file" >&2; exit 1; }
+    mode=$(stat -f '%Lp' "$key_file" 2>/dev/null) || mode=$(stat -c '%a' "$key_file")
+    [[ $mode == 600 || $mode == 400 ]] || { printf 'Gateway key file must have mode 600 or 400.\n' >&2; exit 1; }
+    MARKET_MCP_GATEWAY_KEY=$(<"$key_file")
+    [[ $MARKET_MCP_GATEWAY_KEY =~ ^[a-f0-9]{64}$ ]] || { printf 'Invalid gateway key format.\n' >&2; exit 1; }
+    export MARKET_MCP_GATEWAY_KEY
+    gateway_args=(--env MARKET_MCP_GATEWAY_KEY)
+  fi
   docker pull --platform linux/amd64 "$image"
   opts=(--security-opt no-new-privileges --cap-drop=ALL)
   probe() {
@@ -45,9 +56,10 @@ with sync_playwright() as p:
   fi
   [[ -z $state ]] || docker rm -f "$name" >/dev/null
   docker run -d --restart unless-stopped --platform linux/amd64 --name "$name" --init --shm-size=512m \
-    "${opts[@]}" -p 127.0.0.1:18000:8000 -e MARKET_MCP_BIND=0.0.0.0 \
+    "${opts[@]}" "${gateway_args[@]}" -p 127.0.0.1:18000:8000 -e MARKET_MCP_BIND=0.0.0.0 \
     -e "MARKET_MCP_HOSTS=127.0.0.1:18000,$domain" -e "MARKET_MCP_VIEWER_ORIGIN=$origin" \
     --mount "source=$volume,target=/data" "$image" >/dev/null
+  unset MARKET_MCP_GATEWAY_KEY
 fi
 for ((attempt=0; attempt<20; attempt++)); do
   status=$(curl --noproxy '*' --max-time 2 -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18000/mcp || true)

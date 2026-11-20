@@ -67,7 +67,7 @@ class Viewer:
             job = self.by_slot.get(slot)
             return slot in self.checking or bool(job and job.lease)
 
-    def authorize(self, slot):
+    def authorize(self, slot, *, reset=False):
         with self.lock:
             now = time.monotonic()
             self.checked_until = {k: v for k, v in self.checked_until.items() if v > now}
@@ -81,13 +81,19 @@ class Viewer:
                 return {'ok': False, 'status': 'authorization_in_progress'}
             if slot in self.checking:
                 return {'ok': False, 'status': 'authorization_in_progress'}
+            if len(self.jobs) >= 64:
+                return {'ok': False, 'status': 'viewer_busy'}
             self.checking.add(slot)
         try:
             status = self.engine.call(slot, 'session.status', {'providers': ['ozon']})
             if not status.get('ok'):
                 return {'ok': False, 'status': status.get('status', 'session_unverified')}
             rows = status.get('data', {}).get('sessions', [])
-            if any(r.get('profile_saved') for r in rows):
+            if reset:
+                forgotten = self.engine.call(slot, 'session.forget', {'providers': ['ozon']}, admin=True)
+                if not forgotten.get('ok'):
+                    return {'ok': False, 'status': forgotten.get('status', 'session_reset_failed')}
+            elif any(r.get('profile_saved') for r in rows):
                 live = self.engine.call(slot, 'session.validate', {'providers': ['ozon']}, admin=True)
                 rows = live.get('data', {}).get('sessions', [])
                 if any(r.get('provider') == 'ozon' and r.get('authenticated') is True for r in rows):
@@ -110,6 +116,28 @@ class Viewer:
     def checked(self, slot):
         with self.lock:
             return self.checked_until.get(slot, 0) > time.monotonic()
+
+    def verify(self, slot):
+        with self.lock:
+            job = self.by_slot.get(slot)
+            if job and not job.lease and job.deadline <= time.monotonic():
+                self.drop(job)
+            if self.busy(slot) or slot in self.by_slot:
+                return {'ok': False, 'status': 'authorization_in_progress'}
+            self.checking.add(slot)
+        try:
+            live = self.engine.call(slot, 'session.validate', {'providers': ['ozon']}, admin=True)
+            rows = live.get('data', {}).get('sessions', [])
+            if any(r.get('provider') == 'ozon' and r.get('authenticated') is True for r in rows):
+                with self.lock:
+                    self.checked_until[slot] = time.monotonic() + 600
+                return {'ok': True, 'status': 'success'}
+            if any(r.get('status') == 'login_required' for r in rows):
+                return {'ok': False, 'status': 'authorization_required'}
+            return {'ok': False, 'status': live.get('status') or 'session_unverified'}
+        finally:
+            with self.lock:
+                self.checking.discard(slot)
 
     def link(self, job):
         # Called with the viewer lock held, before a lease exists. A new
@@ -241,6 +269,7 @@ class Viewer:
                         self.failures.pop(next(iter(self.failures)))
                 else:
                     self.failures.pop(job.slot, None)
+                    self.checked_until[job.slot] = time.monotonic() + 600
                 self.drop(job)
 
     def active_job(self, job):

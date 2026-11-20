@@ -95,6 +95,7 @@ server {
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection \$marketplace_viewer_connection;
         proxy_set_header Authorization "";
+        proxy_set_header X-Marketplace-Identity "";
         proxy_buffering off;
         proxy_read_timeout 660s;
         proxy_connect_timeout 5s;
